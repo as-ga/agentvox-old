@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Candidates", href: "/candidates/dossier", icon: Users },
-  { label: "Interviews", href: "/resume/upload", icon: Video },
+  { label: "Interviews", href: "/interviews/planning", icon: Video },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   { label: "Settings", href: "/settings", icon: Settings },
 ] as const;
@@ -31,6 +31,10 @@ function isNavItemActive(pathname: string, href: string): boolean {
 
   if (href === "/candidates/dossier") {
     return pathname.startsWith("/candidates");
+  }
+
+  if (href === "/interviews/planning") {
+    return pathname.startsWith("/interviews");
   }
 
   if (href === "/resume/upload") {
