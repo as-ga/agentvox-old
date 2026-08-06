@@ -13,6 +13,7 @@ export const MOCK_CANDIDATE_DOSSIER: CandidateDossier = {
     fullName: "Alex Johnson",
     title: "Senior Solutions Architect",
     email: "alex.johnson@cloudstream.io",
+    phone: null,
     location: "San Francisco, CA",
     avatarInitials: "AJ",
     yearsOfExperience: 12,
@@ -20,6 +21,14 @@ export const MOCK_CANDIDATE_DOSSIER: CandidateDossier = {
     summary:
       "Principal-track architect with deep expertise in distributed systems, cloud-native platforms, and high-scale backend design. Strong track record leading platform modernization and mentoring senior engineers.",
   },
+  experienceSummary:
+    "Senior architecture ownership across cloud-native platforms.",
+  educationSummary: "M.S. Computer Science, Stanford University.",
+  suggestedInterviewFocus: [
+    "Consistency vs availability trade-offs",
+    "Security controls in CI/CD",
+    "Leadership under architecture conflict",
+  ],
   coreCompetencies: [
     "Distributed Systems",
     "Go",
@@ -206,6 +215,9 @@ export const MOCK_RESUME_DETAILS: ResumeDetails = {
   candidateId: DEFAULT_CANDIDATE_ID,
   fileName: "alex-johnson-resume.pdf",
   uploadedAt: "2026-08-01T10:15:00.000Z",
+  fileSize: 245_760,
+  status: "analyzed",
+  mimeType: "application/pdf",
   parsedSummary:
     "Parsed resume indicates senior architecture ownership, cloud-native delivery, and leadership across platform guilds.",
 };

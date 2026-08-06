@@ -9,12 +9,14 @@ import { cn } from "@/lib/utils";
 
 interface ForgotPasswordSuccessProps {
   email: string;
+  message: string;
   isResending: boolean;
   onResend: () => void;
 }
 
 export function ForgotPasswordSuccess({
   email,
+  message,
   isResending,
   onResend,
 }: ForgotPasswordSuccessProps) {
@@ -41,9 +43,8 @@ export function ForgotPasswordSuccess({
           Password reset email sent
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
-          We have sent a password reset link to{" "}
-          <span className="font-medium text-white">{email}</span>. Check your
-          inbox and follow the instructions to reset your password.
+          {message}{" "}
+          <span className="font-medium text-white">{email}</span>
         </p>
       </div>
 

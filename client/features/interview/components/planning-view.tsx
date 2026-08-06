@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowLeft, Loader2, Play } from "lucide-react";
+import { ArrowLeft, Loader2, Play, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -21,21 +21,21 @@ import { PlanningInsights } from "@/features/interview/components/planning-insig
 import { PlanningSkeleton } from "@/features/interview/components/planning-skeleton";
 import { ReadinessCard } from "@/features/interview/components/readiness-card";
 import { WorkflowTimeline } from "@/features/interview/components/workflow-timeline";
-import {
-  DEFAULT_INTERVIEW_ID,
-  DEFAULT_PLANNING_CANDIDATE_ID,
-} from "@/features/interview/data/mock-planning";
 import { useInterviewPlanning } from "@/features/interview/hooks/use-interview-planning";
-import { normalizeApiError } from "@/services/api/errors";
+import {
+  getCandidateMissingMessage,
+  getCreateInterviewErrorMessage,
+  getPlanningErrorMessage,
+  getResumeMissingMessage,
+  isNotFoundError,
+} from "@/features/interview/utils/planning-errors";
 import { cn } from "@/lib/utils";
 
 export function PlanningView() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const candidateId =
-    searchParams.get("candidateId")?.trim() || DEFAULT_PLANNING_CANDIDATE_ID;
-  const interviewId =
-    searchParams.get("interviewId")?.trim() || DEFAULT_INTERVIEW_ID;
+  const candidateId = searchParams.get("candidateId")?.trim() || "";
+  const resumeId = searchParams.get("resumeId")?.trim() || "";
 
   const {
     plan,
@@ -45,12 +45,28 @@ export function PlanningView() {
     isError,
     error,
     refetch,
+    candidateId: resolvedCandidateId,
+    resumeId: resolvedResumeId,
+    candidateQuery,
+    resumeQuery,
     planMutation,
-  } = useInterviewPlanning({ candidateId, interviewId });
+    createMutation,
+    regeneratePlan,
+  } = useInterviewPlanning({ candidateId, resumeId });
 
   const checklistReady =
     plan?.checklist.every((item) => item.completed) ?? false;
-  const isStarting = planMutation.isPending;
+  const isPlanning = planMutation.isPending;
+  const isCreating = createMutation.isPending;
+  const isBusy = isPlanning || isCreating;
+
+  const showMissingCandidate = !resolvedCandidateId;
+  const candidateMissing =
+    candidateQuery.isError && isNotFoundError(candidateQuery.error);
+  const resumeMissing =
+    Boolean(resolvedResumeId) &&
+    resumeQuery.isError &&
+    isNotFoundError(resumeQuery.error);
 
   return (
     <DashboardLayout
@@ -59,21 +75,42 @@ export function PlanningView() {
         { label: "Active Sessions", current: true },
       ]}
     >
-      {isLoading ? <PlanningSkeleton /> : null}
-
-      {!isLoading && isError ? (
+      {showMissingCandidate ? (
         <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-          <QueryErrorState
-            title="Unable to load interview planning"
-            message={normalizeApiError(error).message}
-            onRetry={() => {
-              void refetch();
-            }}
+          <EmptyState
+            title="Candidate missing"
+            description="Open a candidate dossier or upload a resume before planning an interview."
           />
         </div>
       ) : null}
 
-      {!isLoading && !isError && !plan ? (
+      {!showMissingCandidate && isLoading ? <PlanningSkeleton /> : null}
+
+      {!showMissingCandidate && !isLoading && isError ? (
+        <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+          {candidateMissing ? (
+            <EmptyState
+              title="Candidate missing"
+              description={getCandidateMissingMessage(error)}
+            />
+          ) : resumeMissing ? (
+            <EmptyState
+              title="Resume missing"
+              description={getResumeMissingMessage(resumeQuery.error)}
+            />
+          ) : (
+            <QueryErrorState
+              title="Unable to load interview planning"
+              message={getPlanningErrorMessage(error)}
+              onRetry={() => {
+                void refetch();
+              }}
+            />
+          )}
+        </div>
+      ) : null}
+
+      {!showMissingCandidate && !isLoading && !isError && !plan ? (
         <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
           <EmptyState
             title="No interview plan available"
@@ -82,7 +119,7 @@ export function PlanningView() {
         </div>
       ) : null}
 
-      {!isLoading && !isError && plan ? (
+      {!showMissingCandidate && !isLoading && !isError && plan ? (
         <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6">
           <PlanningHeader
             candidateName={plan.candidate.fullName}
@@ -90,15 +127,67 @@ export function PlanningView() {
             planningProgress={plan.summary.planningProgress}
           />
 
+          {planMutation.isError ? (
+            <QueryErrorState
+              title="Planning failed"
+              message={getPlanningErrorMessage(planMutation.error)}
+              onRetry={() => {
+                void regeneratePlan();
+              }}
+            />
+          ) : null}
+
+          {createMutation.isError ? (
+            <QueryErrorState
+              title="Interview creation failed"
+              message={getCreateInterviewErrorMessage(createMutation.error)}
+              onRetry={() => {
+                void (async () => {
+                  try {
+                    const result = await createMutation.mutateAsync({});
+                    router.push(`/interviews/room/${result.interviewId}`);
+                  } catch {
+                    // Error remains in createMutation state.
+                  }
+                })();
+              }}
+            />
+          ) : null}
+
+          {!resolvedResumeId ? (
+            <QueryErrorState
+              title="Resume missing"
+              message="Upload a resume before generating an interview plan."
+            />
+          ) : null}
+
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
             <div className="space-y-4">
               <InterviewOverview candidate={plan.candidate} />
               <WorkflowTimeline steps={plan.workflow} />
               <InterviewConfiguration
                 value={configuration}
-                disabled={isStarting}
+                disabled={isBusy}
                 onChange={setConfiguration}
               />
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10"
+                  disabled={isBusy || !resolvedResumeId}
+                  onClick={() => {
+                    void regeneratePlan();
+                  }}
+                >
+                  {isPlanning ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  Regenerate Plan
+                </Button>
+              </div>
               <AiAgentsPanel agents={plan.agents} />
               <PlanningCharts
                 skillDistribution={plan.skillDistribution}
@@ -150,26 +239,27 @@ export function PlanningView() {
               </Link>
 
               <motion.div
-                whileHover={{ scale: isStarting ? 1 : 1.01 }}
-                whileTap={{ scale: isStarting ? 1 : 0.99 }}
+                whileHover={{ scale: isBusy ? 1 : 1.01 }}
+                whileTap={{ scale: isBusy ? 1 : 0.99 }}
               >
                 <Button
                   type="button"
                   className="h-11 glow-purple"
-                  disabled={isStarting}
-                  aria-busy={isStarting}
+                  disabled={isBusy || !resolvedResumeId || !configuration.role}
+                  aria-busy={isCreating}
                   onClick={async () => {
                     try {
-                      const result = await planMutation.mutateAsync();
-                      router.push(
-                        `/interviews/room?interviewId=${result.plan.id}&candidateId=${candidateId}`
-                      );
+                      if (!plannedHasId(plan) || planMutation.isError) {
+                        await regeneratePlan();
+                      }
+                      const result = await createMutation.mutateAsync({});
+                      router.push(`/interviews/room/${result.interviewId}`);
                     } catch {
-                      // Error surface can be extended with toast infrastructure.
+                      // Error surfaces via createMutation / planMutation state.
                     }
                   }}
                 >
-                  {isStarting ? (
+                  {isCreating ? (
                     <>
                       <Loader2
                         className="h-4 w-4 animate-spin"
@@ -191,4 +281,8 @@ export function PlanningView() {
       ) : null}
     </DashboardLayout>
   );
+}
+
+function plannedHasId(plan: { id: string }): boolean {
+  return plan.id.trim().length > 0;
 }

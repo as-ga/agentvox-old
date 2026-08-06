@@ -3,9 +3,9 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
+import { AUTH_MUTATION_KEYS } from "@/features/auth/constants/auth-keys";
 import type { RegisterFormValues } from "@/features/auth/schemas/register.schema";
 import { authService } from "@/features/auth/services/auth.service";
-import { useAuthStore } from "@/features/auth/store/auth.store";
 import {
   getAuthErrorMessage,
   getAuthFieldErrors,
@@ -14,10 +14,9 @@ import {
 
 export function useRegister() {
   const router = useRouter();
-  const login = useAuthStore((state) => state.login);
 
   return useMutation({
-    mutationKey: ["auth", "register"],
+    mutationKey: AUTH_MUTATION_KEYS.register,
     retry: false,
     mutationFn: async (values: RegisterFormValues) => {
       return authService.register({
@@ -28,16 +27,8 @@ export function useRegister() {
         receiveUpdates: values.receiveUpdates,
       });
     },
-    onSuccess: (data) => {
-      login(
-        {
-          user: data.user,
-          accessToken: data.accessToken,
-          refreshToken: data.refreshToken,
-        },
-        false
-      );
-      router.replace("/dashboard");
+    onSuccess: () => {
+      router.replace("/login");
     },
   });
 }

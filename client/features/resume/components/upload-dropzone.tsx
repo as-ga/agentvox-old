@@ -23,6 +23,10 @@ interface UploadDropzoneProps {
   error?: string;
   onFileChange: (file: File | null) => void;
   onValidationError: (message: string | null) => void;
+  /** Optional override when removing an already-selected/uploaded resume. */
+  onRemove?: () => void;
+  /** Optional override when replacing; receives the file-picker opener. */
+  onReplace?: (openFilePicker: () => void) => void;
 }
 
 export function UploadDropzone({
@@ -31,6 +35,8 @@ export function UploadDropzone({
   error,
   onFileChange,
   onValidationError,
+  onRemove,
+  onReplace,
 }: UploadDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
@@ -172,8 +178,20 @@ export function UploadDropzone({
         <ResumePreview
           file={file}
           disabled={disabled}
-          onRemove={() => applyFile(null)}
-          onReplace={openFilePicker}
+          onRemove={() => {
+            if (onRemove) {
+              onRemove();
+              return;
+            }
+            applyFile(null);
+          }}
+          onReplace={() => {
+            if (onReplace) {
+              onReplace(openFilePicker);
+              return;
+            }
+            openFilePicker();
+          }}
         />
       ) : null}
 

@@ -1,8 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, RotateCcw } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type { UploadProgressState } from "@/features/resume/types/resume.types";
 import { cn } from "@/lib/utils";
@@ -10,9 +11,16 @@ import { cn } from "@/lib/utils";
 interface UploadProgressProps {
   state: UploadProgressState;
   className?: string;
+  onRetry?: () => void;
+  isRetrying?: boolean;
 }
 
-export function UploadProgress({ state, className }: UploadProgressProps) {
+export function UploadProgress({
+  state,
+  className,
+  onRetry,
+  isRetrying = false,
+}: UploadProgressProps) {
   if (state.status === "idle") {
     return null;
   }
@@ -76,7 +84,23 @@ export function UploadProgress({ state, className }: UploadProgressProps) {
       )}
 
       {isError && state.errorMessage ? (
-        <p className="mt-1 text-xs text-destructive">{state.errorMessage}</p>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-destructive">{state.errorMessage}</p>
+          {onRetry ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0"
+              disabled={isRetrying}
+              aria-busy={isRetrying}
+              onClick={onRetry}
+            >
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+              Retry Upload
+            </Button>
+          ) : null}
+        </div>
       ) : null}
     </motion.div>
   );

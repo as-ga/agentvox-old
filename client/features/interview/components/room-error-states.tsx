@@ -1,20 +1,24 @@
 "use client";
 
 import { CameraOff, MicOff, WifiOff } from "lucide-react";
+import Link from "next/link";
 
 import { EmptyState } from "@/components/feedback/empty-state";
 import { QueryErrorState } from "@/components/feedback/query-error-state";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import type { InterviewRoomPhase } from "@/features/interview/types/interview.types";
+import { cn } from "@/lib/utils";
 
 interface RoomErrorStatesProps {
   phase: InterviewRoomPhase;
+  interviewId?: string;
   onRetryConnection?: () => void;
   onBackToPlanning?: () => void;
 }
 
 export function RoomErrorStates({
   phase,
+  interviewId,
   onRetryConnection,
   onBackToPlanning,
 }: RoomErrorStatesProps) {
@@ -68,12 +72,12 @@ export function RoomErrorStates({
     );
   }
 
-  if (phase === "ended") {
+  if (phase === "cancelled") {
     return (
       <div className="mx-auto max-w-xl px-4 py-10">
         <EmptyState
-          title="Interview ended"
-          description="This session has been closed. Review the report when it becomes available."
+          title="Interview cancelled"
+          description="This interview session was cancelled and cannot continue."
           icon={WifiOff}
         />
         {onBackToPlanning ? (
@@ -83,6 +87,33 @@ export function RoomErrorStates({
             </Button>
           </div>
         ) : null}
+      </div>
+    );
+  }
+
+  if (phase === "ended") {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-10">
+        <EmptyState
+          title="Interview finished"
+          description="This session has been closed. Review the report when it becomes available."
+          icon={WifiOff}
+        />
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          {interviewId ? (
+            <Link
+              href={`/interviews/report?interviewId=${interviewId}`}
+              className={cn(buttonVariants({ size: "default" }), "glow-purple")}
+            >
+              View Report
+            </Link>
+          ) : null}
+          {onBackToPlanning ? (
+            <Button type="button" variant="outline" onClick={onBackToPlanning}>
+              Back to Planning
+            </Button>
+          ) : null}
+        </div>
       </div>
     );
   }

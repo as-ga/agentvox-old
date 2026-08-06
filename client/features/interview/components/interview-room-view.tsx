@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { EmptyState } from "@/components/feedback/empty-state";
 import { QueryErrorState } from "@/components/feedback/query-error-state";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Badge } from "@/components/ui/badge";
@@ -16,15 +17,26 @@ import { LiveScorePanel } from "@/features/interview/components/live-score-panel
 import { QuestionCard } from "@/features/interview/components/question-card";
 import { RoomErrorStates } from "@/features/interview/components/room-error-states";
 import { TranscriptPanel } from "@/features/interview/components/transcript-panel";
-import { DEFAULT_ROOM_INTERVIEW_ID } from "@/features/interview/data/mock-interview-room";
 import { useInterview } from "@/features/interview/hooks/use-interview";
-import { normalizeApiError } from "@/services/api/errors";
+import {
+  getInterviewRoomErrorMessage,
+  getStartInterviewErrorMessage,
+  isNotFoundError,
+} from "@/features/interview/utils/room-errors";
 
-export function InterviewRoomView() {
+interface InterviewRoomViewProps {
+  interviewId?: string;
+}
+
+export function InterviewRoomView({
+  interviewId: interviewIdProp,
+}: InterviewRoomViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const interviewId =
-    searchParams.get("interviewId")?.trim() || DEFAULT_ROOM_INTERVIEW_ID;
+    interviewIdProp?.trim() ||
+    searchParams.get("interviewId")?.trim() ||
+    "";
 
   const {
     session,
@@ -35,6 +47,7 @@ export function InterviewRoomView() {
     error,
     refetch,
     endMutation,
+    startMutation,
     toggleMute,
     toggleCamera,
     setPhase,
@@ -42,6 +55,7 @@ export function InterviewRoomView() {
 
   const showBlockingState =
     phase === "ended" ||
+    phase === "cancelled" ||
     phase === "connection_lost" ||
     phase === "microphone_denied" ||
     phase === "camera_denied";
@@ -53,26 +67,61 @@ export function InterviewRoomView() {
         { label: "Active Sessions", current: true },
       ]}
     >
-      {isLoading ? <InterviewRoomSkeleton /> : null}
-
-      {!isLoading && isError ? (
+      {!interviewId ? (
         <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+          <EmptyState
+            title="Interview not selected"
+            description="Start an interview from planning to enter the live room."
+          />
+        </div>
+      ) : null}
+
+      {interviewId && (isLoading || startMutation.isPending) ? (
+        <InterviewRoomSkeleton />
+      ) : null}
+
+      {interviewId && !isLoading && isError ? (
+        <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+          {isNotFoundError(error) ? (
+            <EmptyState
+              title="Interview not found"
+              description={getInterviewRoomErrorMessage(error)}
+            />
+          ) : (
+            <QueryErrorState
+              title="Unable to load interview room"
+              message={getInterviewRoomErrorMessage(error)}
+              onRetry={() => {
+                void refetch();
+              }}
+            />
+          )}
+        </div>
+      ) : null}
+
+      {interviewId && !isLoading && !startMutation.isPending && startMutation.isError ? (
+        <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6">
           <QueryErrorState
-            title="Unable to load interview room"
-            message={normalizeApiError(error).message}
+            title="Unable to start interview"
+            message={getStartInterviewErrorMessage(startMutation.error)}
             onRetry={() => {
-              void refetch();
+              void startMutation.mutateAsync();
             }}
           />
         </div>
       ) : null}
 
-      {!isLoading && !isError && showBlockingState ? (
+      {interviewId &&
+      !isLoading &&
+      !startMutation.isPending &&
+      !isError &&
+      showBlockingState ? (
         <RoomErrorStates
           phase={phase}
+          interviewId={interviewId}
           onRetryConnection={() => {
             setPhase("live");
-            socket.socket.connect(interviewId);
+            socket.retry();
             void refetch();
           }}
           onBackToPlanning={() => {
@@ -81,7 +130,12 @@ export function InterviewRoomView() {
         />
       ) : null}
 
-      {!isLoading && !isError && session && !showBlockingState ? (
+      {interviewId &&
+      !isLoading &&
+      !startMutation.isPending &&
+      !isError &&
+      session &&
+      !showBlockingState ? (
         <>
           <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 xl:grid-cols-[minmax(0,1fr)_320px]">
             <div className="space-y-4">
@@ -124,6 +178,9 @@ export function InterviewRoomView() {
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Badge variant="secondary">
                         {session.candidate.level}
+                      </Badge>
+                      <Badge variant="outline" className="capitalize">
+                        {session.status}
                       </Badge>
                       {session.candidate.skills.map((skill) => (
                         <Badge key={skill} variant="outline">

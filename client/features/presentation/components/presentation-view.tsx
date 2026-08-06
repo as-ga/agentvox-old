@@ -19,19 +19,21 @@ import { PresentationSkeleton } from "@/features/presentation/components/present
 import { ScoreOverview } from "@/features/presentation/components/score-overview";
 import { StrengthsPanel } from "@/features/presentation/components/strengths-panel";
 import { TimelineOverview } from "@/features/presentation/components/timeline-overview";
-import { DEFAULT_PRESENTATION_CANDIDATE_ID } from "@/features/presentation/data/mock-presentation";
-import { usePresentation } from "@/features/presentation/hooks/use-presentation";
-import { normalizeApiError } from "@/services/api/errors";
+import {
+  getPresentationErrorMessage,
+  isNotFoundError,
+  usePresentationDashboard,
+} from "@/features/presentation/hooks/use-presentation";
 
 export function PresentationView() {
   const searchParams = useSearchParams();
   const candidateId =
     searchParams.get("candidateId")?.trim() ||
     searchParams.get("id")?.trim() ||
-    DEFAULT_PRESENTATION_CANDIDATE_ID;
+    "";
 
   const { data, isLoading, isError, error, refetch, isFetching } =
-    usePresentation(candidateId);
+    usePresentationDashboard(candidateId);
 
   return (
     <DashboardLayout
@@ -40,21 +42,37 @@ export function PresentationView() {
         { label: "Active Sessions", current: true },
       ]}
     >
-      {isLoading ? <PresentationSkeleton /> : null}
-
-      {!isLoading && isError ? (
+      {!candidateId ? (
         <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-          <QueryErrorState
-            title="Unable to load presentation dashboard"
-            message={normalizeApiError(error).message}
-            onRetry={() => {
-              void refetch();
-            }}
+          <EmptyState
+            title="Candidate not selected"
+            description="Open a presentation from a candidate or report to view the executive dashboard."
           />
         </div>
       ) : null}
 
-      {!isLoading && !isError && !data ? (
+      {candidateId && isLoading ? <PresentationSkeleton /> : null}
+
+      {candidateId && !isLoading && isError ? (
+        <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+          {isNotFoundError(error) ? (
+            <EmptyState
+              title="Presentation not found"
+              description={getPresentationErrorMessage(error)}
+            />
+          ) : (
+            <QueryErrorState
+              title="Unable to load presentation dashboard"
+              message={getPresentationErrorMessage(error)}
+              onRetry={() => {
+                void refetch();
+              }}
+            />
+          )}
+        </div>
+      ) : null}
+
+      {candidateId && !isLoading && !isError && !data ? (
         <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
           <EmptyState
             title="No presentation available"
@@ -63,7 +81,7 @@ export function PresentationView() {
         </div>
       ) : null}
 
-      {!isLoading && !isError && data ? (
+      {candidateId && !isLoading && !isError && data ? (
         <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6">
           <PresentationHeader data={data} />
 

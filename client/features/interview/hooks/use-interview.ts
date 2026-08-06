@@ -1,19 +1,32 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 
-import { DEFAULT_ROOM_INTERVIEW_ID } from "@/features/interview/data/mock-interview-room";
+import {
+  INTERVIEW_MUTATION_KEYS,
+  INTERVIEW_QUERY_KEYS,
+} from "@/features/interview/constants/interview-keys";
 import { useInterviewSocket } from "@/features/interview/hooks/use-interview-socket";
 import { interviewService } from "@/features/interview/services/interview.service";
 import { useInterviewStore } from "@/features/interview/store/interview.store";
+import {
+  getEndInterviewErrorMessage,
+  getInterviewRoomErrorMessage,
+  getStartInterviewErrorMessage,
+} from "@/features/interview/utils/room-errors";
 
 export const interviewRoomQueryKeys = {
-  all: ["interview-room"] as const,
-  detail: (id: string) => [...interviewRoomQueryKeys.all, "detail", id] as const,
+  all: INTERVIEW_QUERY_KEYS.all,
+  detail: (id: string) => INTERVIEW_QUERY_KEYS.room(id),
+  questions: (id: string) => INTERVIEW_QUERY_KEYS.questions(id),
+  transcript: (id: string) => INTERVIEW_QUERY_KEYS.transcript(id),
 };
 
-export function useInterview(interviewId: string = DEFAULT_ROOM_INTERVIEW_ID) {
+export function useInterview(interviewId: string) {
+  const queryClient = useQueryClient();
+  const hasAutoStartedRef = useRef(false);
+
   const hydrateSession = useInterviewStore((state) => state.hydrateSession);
   const endSession = useInterviewStore((state) => state.endSession);
   const setPhase = useInterviewStore((state) => state.setPhase);
@@ -23,53 +36,129 @@ export function useInterview(interviewId: string = DEFAULT_ROOM_INTERVIEW_ID) {
   const toggleMute = useInterviewStore((state) => state.toggleMute);
   const toggleCamera = useInterviewStore((state) => state.toggleCamera);
 
+  const enabled = interviewId.trim().length > 0;
+
   const sessionQuery = useQuery({
-    queryKey: interviewRoomQueryKeys.detail(interviewId),
-    queryFn: () => interviewService.getInterview(interviewId),
+    queryKey: INTERVIEW_QUERY_KEYS.room(interviewId),
+    queryFn: () => interviewService.getInterviewRoom(interviewId),
+    enabled,
     staleTime: 10_000,
+    retry: 1,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "live" ? 15_000 : false;
+    },
+  });
+
+  const questionsQuery = useQuery({
+    queryKey: INTERVIEW_QUERY_KEYS.questions(interviewId),
+    queryFn: () => interviewService.getQuestions(interviewId),
+    enabled: enabled && Boolean(sessionQuery.data),
+    staleTime: 8_000,
     retry: 1,
   });
 
+  const transcriptQuery = useQuery({
+    queryKey: INTERVIEW_QUERY_KEYS.transcript(interviewId),
+    queryFn: () => interviewService.getTranscript(interviewId),
+    enabled: enabled && Boolean(sessionQuery.data),
+    staleTime: 5_000,
+    retry: 1,
+    refetchInterval: sessionQuery.data?.status === "live" ? 8_000 : false,
+  });
+
   useEffect(() => {
-    if (sessionQuery.data) {
-      hydrateSession(sessionQuery.data);
+    if (!sessionQuery.data) {
+      return;
     }
-  }, [hydrateSession, sessionQuery.data]);
+
+    const nextSession = {
+      ...sessionQuery.data,
+      question:
+        questionsQuery.data?.currentQuestion ?? sessionQuery.data.question,
+      transcript: transcriptQuery.data ?? sessionQuery.data.transcript,
+      progressPercent:
+        questionsQuery.data?.currentQuestion &&
+        questionsQuery.data.currentQuestion.total > 0
+          ? Math.round(
+              (questionsQuery.data.currentQuestion.index /
+                questionsQuery.data.currentQuestion.total) *
+                100
+            )
+          : sessionQuery.data.progressPercent,
+    };
+
+    hydrateSession(nextSession);
+  }, [
+    hydrateSession,
+    sessionQuery.data,
+    questionsQuery.data,
+    transcriptQuery.data,
+  ]);
 
   useEffect(() => {
     return () => {
       reset();
+      hasAutoStartedRef.current = false;
     };
-  }, [reset]);
+  }, [reset, interviewId]);
 
-  const socket = useInterviewSocket(
-    sessionQuery.data || session ? interviewId : undefined
-  );
+  const liveInterviewId =
+    sessionQuery.data?.status === "live" || session?.status === "live"
+      ? interviewId
+      : undefined;
+
+  const socket = useInterviewSocket(liveInterviewId);
 
   const startMutation = useMutation({
-    mutationKey: ["interview", "start", interviewId],
+    mutationKey: [...INTERVIEW_MUTATION_KEYS.start, interviewId],
     retry: false,
     mutationFn: () =>
       interviewService.startInterview({
         interviewId,
       }),
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       hydrateSession(result.session);
+      await queryClient.invalidateQueries({
+        queryKey: INTERVIEW_QUERY_KEYS.room(interviewId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: INTERVIEW_QUERY_KEYS.questions(interviewId),
+      });
     },
   });
 
   const endMutation = useMutation({
-    mutationKey: ["interview", "end", interviewId],
+    mutationKey: [...INTERVIEW_MUTATION_KEYS.end, interviewId],
     retry: false,
     mutationFn: () =>
       interviewService.endInterview({
         interviewId,
         reason: "manual",
       }),
-    onSuccess: () => {
+    onSuccess: async () => {
       endSession();
+      await queryClient.invalidateQueries({
+        queryKey: INTERVIEW_QUERY_KEYS.room(interviewId),
+      });
     },
   });
+
+  const startInterview = startMutation.mutateAsync;
+  const isStarting = startMutation.isPending;
+
+  useEffect(() => {
+    if (hasAutoStartedRef.current || isStarting) {
+      return;
+    }
+
+    if (sessionQuery.data?.status !== "scheduled") {
+      return;
+    }
+
+    hasAutoStartedRef.current = true;
+    void startInterview();
+  }, [sessionQuery.data?.status, isStarting, startInterview]);
 
   return {
     interviewId,
@@ -77,6 +166,8 @@ export function useInterview(interviewId: string = DEFAULT_ROOM_INTERVIEW_ID) {
     phase,
     socket,
     sessionQuery,
+    questionsQuery,
+    transcriptQuery,
     startMutation,
     endMutation,
     toggleMute,
@@ -85,6 +176,15 @@ export function useInterview(interviewId: string = DEFAULT_ROOM_INTERVIEW_ID) {
     isLoading: sessionQuery.isLoading,
     isError: sessionQuery.isError,
     error: sessionQuery.error,
-    refetch: sessionQuery.refetch,
+    refetch: async () => {
+      await Promise.all([
+        sessionQuery.refetch(),
+        questionsQuery.refetch(),
+        transcriptQuery.refetch(),
+      ]);
+    },
+    getRoomErrorMessage: getInterviewRoomErrorMessage,
+    getStartErrorMessage: getStartInterviewErrorMessage,
+    getEndErrorMessage: getEndInterviewErrorMessage,
   };
 }

@@ -21,6 +21,10 @@ export function InterviewSummary({ summary }: InterviewSummaryProps) {
       value: String(summary.expectedQuestionCount),
     },
     {
+      label: "Difficulty",
+      value: summary.difficulty,
+    },
+    {
       label: "Skill Coverage",
       value: `${summary.skillCoverage}%`,
     },
@@ -42,7 +46,7 @@ export function InterviewSummary({ summary }: InterviewSummaryProps) {
           <div className="mb-4 flex items-center gap-2">
             <ClipboardList className="h-4 w-4 text-primary" aria-hidden="true" />
             <h2 className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-              Configuration Summary
+              Generated Interview Plan
             </h2>
           </div>
 
@@ -55,12 +59,30 @@ export function InterviewSummary({ summary }: InterviewSummaryProps) {
                 <dt className="text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
                   {item.label}
                 </dt>
-                <dd className="mt-1 text-sm font-semibold text-white">
+                <dd className="mt-1 text-sm font-semibold capitalize text-white">
                   {item.value}
                 </dd>
               </div>
             ))}
           </dl>
+
+          {summary.skillsToCover.length > 0 ? (
+            <div className="mt-4">
+              <p className="mb-2 text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
+                Skills To Cover
+              </p>
+              <ul className="flex flex-wrap gap-2" aria-label="Skills to cover">
+                {summary.skillsToCover.map((skill) => (
+                  <li
+                    key={skill}
+                    className="rounded-lg border border-border/70 bg-[#0f1018] px-2.5 py-1 text-xs text-muted-foreground"
+                  >
+                    {skill}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </motion.div>

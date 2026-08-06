@@ -1,9 +1,10 @@
 export interface CandidateProfile {
   id: string;
-  resumeId: string;
+  resumeId: string | null;
   fullName: string;
   title: string;
   email: string;
+  phone: string | null;
   location: string;
   avatarInitials: string;
   summary: string;
@@ -13,7 +14,7 @@ export interface CandidateProfile {
 
 export interface SkillItem {
   name: string;
-  proficiency: number;
+  proficiency?: number;
   category: string;
 }
 
@@ -86,6 +87,8 @@ export interface InterviewRoadmap {
   sections: ReadonlyArray<RoadmapSection>;
 }
 
+export type AnalysisStatus = "complete" | "pending" | "failed" | "idle";
+
 export interface CandidateDossier {
   profile: CandidateProfile;
   skills: ReadonlyArray<SkillItem>;
@@ -98,8 +101,11 @@ export interface CandidateDossier {
   strengths: ReadonlyArray<MetricItem>;
   weaknesses: ReadonlyArray<MetricItem>;
   aiSummary: string;
+  experienceSummary: string;
+  educationSummary: string;
+  suggestedInterviewFocus: ReadonlyArray<string>;
   roadmap: InterviewRoadmap;
-  analysisStatus: "complete" | "pending" | "failed";
+  analysisStatus: AnalysisStatus;
 }
 
 export interface ResumeDetails {
@@ -107,7 +113,20 @@ export interface ResumeDetails {
   candidateId: string;
   fileName: string;
   uploadedAt: string;
+  fileSize: number;
+  status: string;
+  mimeType: string;
   parsedSummary: string;
+}
+
+export interface UpdateCandidateRequest {
+  fullName?: string;
+  email?: string;
+  phone?: string | null;
+  title?: string | null;
+  targetRole?: string | null;
+  yearsOfExperience?: number | null;
+  skills?: ReadonlyArray<string> | null;
 }
 
 export interface AnalyzeResumeRequest {
@@ -116,6 +135,20 @@ export interface AnalyzeResumeRequest {
 
 export interface AnalyzeResumeResponse {
   analysisId: string;
-  status: "queued" | "processing" | "complete";
+  status: "queued" | "processing" | "complete" | "failed";
   candidateId: string;
+  skills: ReadonlyArray<SkillItem>;
+  experienceSummary: string;
+  educationSummary: string;
+  suggestedInterviewFocus: ReadonlyArray<string>;
+  coreCompetencies: ReadonlyArray<string>;
+  experience: ReadonlyArray<ExperienceItem>;
+  projects: ReadonlyArray<ProjectItem>;
+  education: ReadonlyArray<EducationItem>;
+  certifications: ReadonlyArray<CertificationItem>;
+  competencies: ReadonlyArray<CompetencyScore>;
+  strengths: ReadonlyArray<MetricItem>;
+  weaknesses: ReadonlyArray<MetricItem>;
+  aiSummary: string;
+  roadmap: InterviewRoadmap;
 }

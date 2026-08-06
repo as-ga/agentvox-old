@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 export function ForgotPasswordForm() {
   const forgotPasswordMutation = useForgotPassword();
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const {
     register,
@@ -52,7 +53,8 @@ export function ForgotPasswordForm() {
     }
 
     try {
-      await forgotPasswordMutation.mutateAsync(values);
+      const response = await forgotPasswordMutation.mutateAsync(values);
+      setSuccessMessage(response.message);
       setSubmittedEmail(values.email);
     } catch (error) {
       const fieldErrors = getForgotPasswordFieldErrors(error);
@@ -69,7 +71,8 @@ export function ForgotPasswordForm() {
     }
 
     try {
-      await forgotPasswordMutation.mutateAsync({ email });
+      const response = await forgotPasswordMutation.mutateAsync({ email });
+      setSuccessMessage(response.message);
       setSubmittedEmail(email);
     } catch {
       // Keep success card visible; error surfaces via mutation state below if needed
@@ -78,10 +81,11 @@ export function ForgotPasswordForm() {
 
   return (
     <AnimatePresence mode="wait">
-      {submittedEmail ? (
+      {submittedEmail && successMessage ? (
         <ForgotPasswordSuccess
           key="success"
           email={submittedEmail}
+          message={successMessage}
           isResending={forgotPasswordMutation.isPending}
           onResend={() => {
             void handleResend();

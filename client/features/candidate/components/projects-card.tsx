@@ -27,6 +27,12 @@ export function ProjectsCard({ projects }: ProjectsCardProps) {
             </h3>
           </div>
 
+          {projects.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No projects available yet.
+            </p>
+          ) : null}
+
           <ul className="space-y-3">
             {projects.map((project, index) => (
               <motion.li

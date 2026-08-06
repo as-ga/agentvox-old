@@ -18,6 +18,7 @@ export const MOCK_CANDIDATE_DASHBOARD: CandidateDashboard = {
   candidate: {
     id: DEFAULT_DASHBOARD_CANDIDATE_ID,
     fullName: "Alexander Johnson",
+    email: "alexander.johnson@example.com",
     currentRole: "Senior Solutions Architect",
     preferredRole: "Principal Engineer",
     experienceLevel: "Senior (12+ years)",
@@ -26,7 +27,21 @@ export const MOCK_CANDIDATE_DASHBOARD: CandidateDashboard = {
     aiAssistantStatus: "online",
     resumeScore: 91,
     readinessScore: 87,
+    resumeStatus: "analyzed",
   },
+  monthlyProgress: [
+    { label: "May", interviews: 5, averageScore: 83 },
+    { label: "Jun", interviews: 4, averageScore: 86 },
+    { label: "Jul", interviews: 3, averageScore: 84 },
+  ],
+  scoreDistribution: [
+    { label: "90-100", count: 4 },
+    { label: "80-89", count: 8 },
+    { label: "70-79", count: 6 },
+    { label: "Below 70", count: 2 },
+  ],
+  averageTechnicalScore: 86,
+  averageBehavioralScore: 79,
   metrics: [
     {
       id: "completed",
@@ -115,8 +130,10 @@ export const MOCK_CANDIDATE_DASHBOARD: CandidateDashboard = {
     {
       id: "RI-2201",
       name: "System Design Deep Dive",
+      position: "System Design Deep Dive",
       company: "AgentVox Mock",
       score: 92,
+      status: "completed",
       recommendation: "Strong Hire",
       completedAt: "2026-08-05T14:00:00.000Z",
       reportId: "RPT-AVX-9942",
@@ -124,8 +141,10 @@ export const MOCK_CANDIDATE_DASHBOARD: CandidateDashboard = {
     {
       id: "RI-2202",
       name: "Behavioral Leadership Round",
+      position: "Behavioral Leadership Round",
       company: "AgentVox Mock",
       score: 78,
+      status: "completed",
       recommendation: "Hire",
       completedAt: "2026-07-28T16:20:00.000Z",
       reportId: "RPT-AVX-9811",
@@ -133,8 +152,10 @@ export const MOCK_CANDIDATE_DASHBOARD: CandidateDashboard = {
     {
       id: "RI-2203",
       name: "Distributed Systems Drill",
+      position: "Distributed Systems Drill",
       company: "Practice Arena",
       score: 86,
+      status: "completed",
       recommendation: "Strong Hire",
       completedAt: "2026-07-20T11:10:00.000Z",
       reportId: "RPT-AVX-9720",
@@ -279,6 +300,7 @@ export const MOCK_DASHBOARD_INTERVIEWS: ReadonlyArray<DashboardInterviewListItem
     {
       id: "UP-1001",
       title: "Principal Platform Engineer",
+      company: "CloudStream Dynamics",
       status: "confirmed",
       score: null,
       scheduledAt: "2026-08-08T10:30:00.000Z",
@@ -286,6 +308,7 @@ export const MOCK_DASHBOARD_INTERVIEWS: ReadonlyArray<DashboardInterviewListItem
     {
       id: "RI-2201",
       title: "System Design Deep Dive",
+      company: "AgentVox Mock",
       status: "completed",
       score: 92,
       scheduledAt: "2026-08-05T14:00:00.000Z",
@@ -293,6 +316,7 @@ export const MOCK_DASHBOARD_INTERVIEWS: ReadonlyArray<DashboardInterviewListItem
     {
       id: "RI-2202",
       title: "Behavioral Leadership Round",
+      company: "AgentVox Mock",
       status: "completed",
       score: 78,
       scheduledAt: "2026-07-28T16:20:00.000Z",

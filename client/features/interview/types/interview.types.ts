@@ -6,6 +6,7 @@ export type WorkflowStepStatus = "completed" | "active" | "pending";
 export interface PlanningCandidate {
   id: string;
   fullName: string;
+  email: string;
   title: string;
   level: string;
   percentileLabel: string;
@@ -13,6 +14,10 @@ export interface PlanningCandidate {
   resumeScore: number;
   readinessScore: number;
   selectedRole: string;
+  resumeId: string | null;
+  resumeFileName: string | null;
+  resumeStatus: string;
+  resumeUploadedAt: string | null;
 }
 
 export interface InterviewConfiguration {
@@ -71,6 +76,8 @@ export interface PlanningSummary {
   confidenceScore: number;
   planningProgress: number;
   engineStatus: string;
+  difficulty: InterviewDifficulty;
+  skillsToCover: ReadonlyArray<string>;
 }
 
 export interface InterviewPlan {
@@ -88,6 +95,7 @@ export interface InterviewPlan {
 
 export interface CreateInterviewRequest {
   candidateId: string;
+  resumeId: string;
   configuration: InterviewConfiguration;
 }
 
@@ -97,7 +105,8 @@ export interface CreateInterviewResponse {
 }
 
 export interface PlanInterviewRequest {
-  interviewId: string;
+  candidateId: string;
+  resumeId: string;
   configuration: InterviewConfiguration;
 }
 
@@ -110,6 +119,7 @@ export type InterviewRoomPhase =
   | "loading"
   | "live"
   | "ended"
+  | "cancelled"
   | "connection_lost"
   | "microphone_denied"
   | "camera_denied";
@@ -171,7 +181,7 @@ export interface RoomAgent {
 
 export interface InterviewRoomSession {
   id: string;
-  status: "live" | "ended";
+  status: "scheduled" | "live" | "ended" | "cancelled";
   phase: InterviewRoomPhase;
   candidate: InterviewRoomCandidate;
   question: InterviewQuestion;

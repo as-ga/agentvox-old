@@ -2,32 +2,28 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { DEFAULT_DASHBOARD_CANDIDATE_ID } from "@/features/dashboard/data/mock-dashboard";
+import { DASHBOARD_QUERY_KEYS } from "@/features/dashboard/constants/dashboard-keys";
 import { dashboardService } from "@/features/dashboard/services/dashboard.service";
+import {
+  getDashboardErrorMessage,
+  getDashboardInterviewsErrorMessage,
+  getDashboardReportsErrorMessage,
+} from "@/features/dashboard/utils/dashboard-errors";
 
-export const dashboardQueryKeys = {
-  all: ["dashboard"] as const,
-  root: () => [...dashboardQueryKeys.all, "root"] as const,
-  candidate: (id: string) =>
-    [...dashboardQueryKeys.all, "candidate", id] as const,
-  interviews: () => [...dashboardQueryKeys.all, "interviews"] as const,
-  reports: () => [...dashboardQueryKeys.all, "reports"] as const,
-};
+export const dashboardQueryKeys = DASHBOARD_QUERY_KEYS;
 
 export function useDashboard() {
   return useQuery({
-    queryKey: dashboardQueryKeys.root(),
+    queryKey: DASHBOARD_QUERY_KEYS.root(),
     queryFn: () => dashboardService.getDashboard(),
     retry: 1,
     staleTime: 30_000,
   });
 }
 
-export function useDashboardCandidate(
-  candidateId: string = DEFAULT_DASHBOARD_CANDIDATE_ID
-) {
+export function useDashboardCandidate(candidateId: string) {
   return useQuery({
-    queryKey: dashboardQueryKeys.candidate(candidateId),
+    queryKey: DASHBOARD_QUERY_KEYS.candidate(candidateId),
     queryFn: () => dashboardService.getCandidate(candidateId),
     enabled: candidateId.length > 0,
     retry: 1,
@@ -37,7 +33,7 @@ export function useDashboardCandidate(
 
 export function useDashboardInterviews() {
   return useQuery({
-    queryKey: dashboardQueryKeys.interviews(),
+    queryKey: DASHBOARD_QUERY_KEYS.interviews(),
     queryFn: () => dashboardService.getInterviews(),
     retry: 1,
     staleTime: 30_000,
@@ -46,9 +42,21 @@ export function useDashboardInterviews() {
 
 export function useDashboardReports() {
   return useQuery({
-    queryKey: dashboardQueryKeys.reports(),
+    queryKey: DASHBOARD_QUERY_KEYS.reports(),
     queryFn: () => dashboardService.getReports(),
     retry: 1,
     staleTime: 30_000,
   });
+}
+
+export function getUseDashboardErrorMessage(error: unknown): string {
+  return getDashboardErrorMessage(error);
+}
+
+export function getUseDashboardInterviewsErrorMessage(error: unknown): string {
+  return getDashboardInterviewsErrorMessage(error);
+}
+
+export function getUseDashboardReportsErrorMessage(error: unknown): string {
+  return getDashboardReportsErrorMessage(error);
 }

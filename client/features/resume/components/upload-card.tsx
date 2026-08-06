@@ -18,21 +18,51 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UploadDropzone } from "@/features/resume/components/upload-dropzone";
 import { UploadProgress } from "@/features/resume/components/upload-progress";
+import { useDeleteResume } from "@/features/resume/hooks/use-delete-resume";
+import { useGetResume } from "@/features/resume/hooks/use-get-resume";
 import { useUploadResume } from "@/features/resume/hooks/use-upload-resume";
 import {
   resumeUploadSchema,
   type ResumeUploadFormValues,
   type ResumeUploadPayloadValues,
 } from "@/features/resume/schemas/resume.schema";
+import { useResumeStore } from "@/features/resume/store/resume.store";
+import {
+  getResumeErrorMessage,
+  getResumeFieldErrors,
+} from "@/features/resume/utils/resume-errors";
+
+type ResumeFormField =
+  | "fullName"
+  | "email"
+  | "targetRole"
+  | "yearsOfExperience"
+  | "file";
+
+const RESUME_FORM_FIELDS: ReadonlyArray<ResumeFormField> = [
+  "fullName",
+  "email",
+  "targetRole",
+  "yearsOfExperience",
+  "file",
+];
 
 export function UploadCard() {
+  const currentResume = useResumeStore((state) => state.currentResume);
+  const clearResume = useResumeStore((state) => state.clearResume);
+
   const {
     mutateAsync,
     isUploading,
     progressState,
     resetProgress,
+    retryUpload,
     isSuccess,
+    reset: resetMutation,
   } = useUploadResume();
+
+  const deleteResume = useDeleteResume();
+  useGetResume(currentResume?.id);
 
   const {
     register,
@@ -56,7 +86,19 @@ export function UploadCard() {
   });
 
   const selectedFile = watch("file");
-  const isBusy = isUploading || isSubmitting;
+  const isBusy =
+    isUploading || isSubmitting || deleteResume.isPending;
+
+  function applyServerFieldErrors(error: unknown) {
+    const fieldErrors = getResumeFieldErrors(error);
+
+    for (const field of RESUME_FORM_FIELDS) {
+      const message = fieldErrors[field];
+      if (message) {
+        setError(field, { type: "server", message });
+      }
+    }
+  }
 
   const onSubmit = handleSubmit(async (values) => {
     if (isBusy) {
@@ -71,10 +113,66 @@ export function UploadCard() {
         yearsOfExperience: values.yearsOfExperience,
         file: values.file,
       });
-    } catch {
-      // Progress/error state is handled in the mutation hook.
+    } catch (error) {
+      applyServerFieldErrors(error);
     }
   });
+
+  async function handleRetry() {
+    if (isBusy) {
+      return;
+    }
+
+    try {
+      await retryUpload();
+    } catch (error) {
+      applyServerFieldErrors(error);
+    }
+  }
+
+  async function handleRemoveFile(onFileChange: (file: File | null) => void) {
+    if (isBusy) {
+      return;
+    }
+
+    if (currentResume?.id) {
+      try {
+        await deleteResume.mutateAsync(currentResume.id);
+      } catch (error) {
+        setError("file", {
+          type: "server",
+          message: getResumeErrorMessage(error),
+        });
+        return;
+      }
+    }
+
+    onFileChange(null);
+    resetProgress();
+    resetMutation();
+  }
+
+  async function handleReplaceFile(openFilePicker: () => void) {
+    if (isBusy) {
+      return;
+    }
+
+    if (currentResume?.id) {
+      try {
+        await deleteResume.mutateAsync(currentResume.id);
+      } catch (error) {
+        setError("file", {
+          type: "server",
+          message: getResumeErrorMessage(error),
+        });
+        return;
+      }
+      resetProgress();
+      resetMutation();
+    }
+
+    openFilePicker();
+  }
 
   return (
     <motion.section
@@ -208,6 +306,7 @@ export function UploadCard() {
                   onFileChange={(nextFile) => {
                     if (progressState.status !== "idle") {
                       resetProgress();
+                      resetMutation();
                     }
                     field.onChange(nextFile);
                     if (nextFile) {
@@ -221,17 +320,31 @@ export function UploadCard() {
                     }
                     clearErrors("file");
                   }}
+                  onRemove={() => {
+                    void handleRemoveFile(field.onChange);
+                  }}
+                  onReplace={(openFilePicker) => {
+                    void handleReplaceFile(openFilePicker);
+                  }}
                 />
               )}
             />
 
-            <UploadProgress state={progressState} />
+            <UploadProgress
+              state={progressState}
+              onRetry={() => {
+                void handleRetry();
+              }}
+              isRetrying={isBusy}
+            />
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-muted-foreground">
                 {selectedFile instanceof File
                   ? `Ready to upload: ${selectedFile.name}`
-                  : "Select a PDF or DOCX resume to continue."}
+                  : currentResume
+                    ? `Uploaded: ${currentResume.fileName}`
+                    : "Select a PDF or DOCX resume to continue."}
               </p>
 
               <div className="flex items-center gap-2">
@@ -248,7 +361,9 @@ export function UploadCard() {
                         yearsOfExperience: "",
                         file: undefined,
                       });
+                      clearResume();
                       resetProgress();
+                      resetMutation();
                     }}
                   >
                     Upload Another
@@ -263,9 +378,9 @@ export function UploadCard() {
                     type="submit"
                     className="h-10 glow-purple"
                     disabled={isBusy || isSuccess}
-                    aria-busy={isBusy}
+                    aria-busy={isUploading || isSubmitting}
                   >
-                    {isBusy ? (
+                    {isUploading || isSubmitting ? (
                       <>
                         <Loader2
                           className="h-4 w-4 animate-spin"

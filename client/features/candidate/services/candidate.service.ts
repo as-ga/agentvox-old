@@ -1,69 +1,57 @@
 "use client";
 
-import {
-  DEFAULT_CANDIDATE_ID,
-  MOCK_CANDIDATE_DOSSIER,
-  MOCK_RESUME_DETAILS,
-  simulateNetworkLatency,
-} from "@/features/candidate/data/mock-candidate";
 import type {
   AnalyzeResumeRequest,
   AnalyzeResumeResponse,
   CandidateDossier,
   ResumeDetails,
+  UpdateCandidateRequest,
 } from "@/features/candidate/types/candidate.types";
-import { apiClient } from "@/services/api/client";
-
-const useMockApi = process.env.NEXT_PUBLIC_USE_MOCK_API !== "false";
+import {
+  mapAnalyzeResumeResponse,
+  mapCandidateDossier,
+  mapResumeDetails,
+  toBackendCandidateUpdate,
+  type BackendAnalysisDto,
+  type BackendCandidateDto,
+} from "@/features/candidate/utils/candidate-mappers";
+import { api } from "@/services/api/client";
+import type { BackendResumeDto } from "@/features/resume/utils/resume-mappers";
+import { mapBackendResume } from "@/features/resume/utils/resume-mappers";
 
 export const candidateService = {
   async getCandidate(id: string): Promise<CandidateDossier> {
-    if (useMockApi) {
-      await simulateNetworkLatency();
+    const data = await api.get<BackendCandidateDto>(`/candidate/${id}`);
+    return mapCandidateDossier(data, {
+      resumeId: data.resume_id ? String(data.resume_id) : null,
+    });
+  },
 
-      if (id !== DEFAULT_CANDIDATE_ID && id !== "default") {
-        throw new Error(`Candidate ${id} was not found`);
-      }
-
-      return MOCK_CANDIDATE_DOSSIER;
-    }
-
-    const { data } = await apiClient.get<CandidateDossier>(`/candidate/${id}`);
-    return data;
+  async updateCandidate(
+    id: string,
+    payload: UpdateCandidateRequest
+  ): Promise<CandidateDossier> {
+    const data = await api.put<BackendCandidateDto>(
+      `/candidate/${id}`,
+      toBackendCandidateUpdate(payload)
+    );
+    return mapCandidateDossier(data, {
+      resumeId: data.resume_id ? String(data.resume_id) : null,
+    });
   },
 
   async getResume(id: string): Promise<ResumeDetails> {
-    if (useMockApi) {
-      await simulateNetworkLatency(300);
-
-      if (id !== MOCK_RESUME_DETAILS.id) {
-        throw new Error(`Resume ${id} was not found`);
-      }
-
-      return MOCK_RESUME_DETAILS;
-    }
-
-    const { data } = await apiClient.get<ResumeDetails>(`/resume/${id}`);
-    return data;
+    const data = await api.get<BackendResumeDto>(`/resume/${id}`);
+    const record = mapBackendResume(data);
+    return mapResumeDetails(record, data);
   },
 
   async analyzeResume(
     payload: AnalyzeResumeRequest
   ): Promise<AnalyzeResumeResponse> {
-    if (useMockApi) {
-      await simulateNetworkLatency(500);
-
-      return {
-        analysisId: `ANL-${payload.resumeId}`,
-        status: "complete",
-        candidateId: DEFAULT_CANDIDATE_ID,
-      };
-    }
-
-    const { data } = await apiClient.post<AnalyzeResumeResponse>(
-      "/resume/analyze",
-      payload
-    );
-    return data;
+    const data = await api.post<BackendAnalysisDto>("/resume/analyze", {
+      resume_id: payload.resumeId,
+    });
+    return mapAnalyzeResumeResponse(data);
   },
 };

@@ -15,6 +15,18 @@ interface RecentInterviewsProps {
   interviews: ReadonlyArray<RecentInterview>;
 }
 
+function formatInterviewDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
 export function RecentInterviews({ interviews }: RecentInterviewsProps) {
   return (
     <motion.div
@@ -32,16 +44,22 @@ export function RecentInterviews({ interviews }: RecentInterviewsProps) {
 
           {interviews.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Complete a mock interview to see recent results.
+              No interviews found. Complete a mock interview to see recent
+              results.
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-left" aria-label="Recent interviews">
+              <table
+                className="w-full min-w-[720px] text-left"
+                aria-label="Recent interviews"
+              >
                 <thead>
                   <tr className="border-b border-white/10 text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
-                    <th className="pb-3 pr-3 font-semibold">Interview</th>
+                    <th className="pb-3 pr-3 font-semibold">Company</th>
+                    <th className="pb-3 pr-3 font-semibold">Position</th>
+                    <th className="pb-3 pr-3 font-semibold">Date</th>
+                    <th className="pb-3 pr-3 font-semibold">Status</th>
                     <th className="pb-3 pr-3 font-semibold">Score</th>
-                    <th className="pb-3 pr-3 font-semibold">Recommendation</th>
                     <th className="pb-3 font-semibold">Report</th>
                   </tr>
                 </thead>
@@ -54,13 +72,24 @@ export function RecentInterviews({ interviews }: RecentInterviewsProps) {
                       transition={{ duration: 0.22, delay: 0.03 * index }}
                       className="border-b border-white/5 last:border-b-0"
                     >
+                      <td className="py-3 pr-3 align-middle text-sm text-white">
+                        {item.company}
+                      </td>
                       <td className="py-3 pr-3 align-middle">
                         <p className="text-sm font-medium text-white">
-                          {item.name}
+                          {item.position || item.name}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {item.company}
-                        </p>
+                      </td>
+                      <td className="py-3 pr-3 align-middle text-xs text-muted-foreground">
+                        {formatInterviewDate(item.completedAt)}
+                      </td>
+                      <td className="py-3 pr-3 align-middle">
+                        <Badge
+                          variant="purple"
+                          className="capitalize tracking-normal normal-case"
+                        >
+                          {item.status}
+                        </Badge>
                       </td>
                       <td className="py-3 pr-3 align-middle">
                         <div className="min-w-[120px] space-y-1.5">
@@ -70,14 +99,6 @@ export function RecentInterviews({ interviews }: RecentInterviewsProps) {
                           <Progress value={item.score} className="h-1.5" />
                         </div>
                       </td>
-                      <td className="py-3 pr-3 align-middle">
-                        <Badge
-                          variant="purple"
-                          className="tracking-normal normal-case"
-                        >
-                          {item.recommendation}
-                        </Badge>
-                      </td>
                       <td className="py-3 align-middle">
                         <Link
                           href={`/interviews/report?id=${item.reportId}`}
@@ -85,10 +106,10 @@ export function RecentInterviews({ interviews }: RecentInterviewsProps) {
                             buttonVariants({ variant: "outline", size: "sm" }),
                             "h-8"
                           )}
-                          aria-label={`View report for ${item.name}`}
+                          aria-label={`View report for ${item.position || item.name}`}
                         >
                           <FileText className="h-3.5 w-3.5" aria-hidden="true" />
-                          Report
+                          View Report
                         </Link>
                       </td>
                     </motion.tr>

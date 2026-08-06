@@ -34,27 +34,33 @@ export function EducationCard({
                 Education
               </h3>
             </div>
-            <ul className="space-y-3">
-              {education.map((item) => (
-                <li
-                  key={item.id}
-                  className="rounded-xl border border-border/70 bg-[#0f1018] p-3"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-white">
-                      {item.degree}
+            {education.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No education records available yet.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {education.map((item) => (
+                  <li
+                    key={item.id}
+                    className="rounded-xl border border-border/70 bg-[#0f1018] p-3"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-white">
+                        {item.degree}
+                      </p>
+                      <span className="text-xs text-muted-foreground">
+                        {item.year}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-primary">{item.institution}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {item.details}
                     </p>
-                    <span className="text-xs text-muted-foreground">
-                      {item.year}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-primary">{item.institution}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {item.details}
-                  </p>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {certifications.length > 0 ? (

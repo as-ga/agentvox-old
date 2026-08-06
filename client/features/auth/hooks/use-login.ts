@@ -1,8 +1,12 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
+import {
+  AUTH_MUTATION_KEYS,
+  AUTH_QUERY_KEYS,
+} from "@/features/auth/constants/auth-keys";
 import type { LoginFormValues } from "@/features/auth/schemas/login.schema";
 import { authService } from "@/features/auth/services/auth.service";
 import { useAuthStore } from "@/features/auth/store/auth.store";
@@ -13,10 +17,11 @@ import {
 
 export function useLogin() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const login = useAuthStore((state) => state.login);
 
   return useMutation({
-    mutationKey: ["auth", "login"],
+    mutationKey: AUTH_MUTATION_KEYS.login,
     retry: false,
     mutationFn: async (values: LoginFormValues) => {
       return authService.login({
@@ -25,7 +30,7 @@ export function useLogin() {
         rememberMe: values.rememberMe,
       });
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       login(
         {
           user: data.user,
@@ -34,6 +39,9 @@ export function useLogin() {
         },
         variables.rememberMe
       );
+      await queryClient.invalidateQueries({
+        queryKey: AUTH_QUERY_KEYS.currentUser,
+      });
       router.replace("/dashboard");
     },
   });

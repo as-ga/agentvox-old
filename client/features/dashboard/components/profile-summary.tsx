@@ -1,8 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Briefcase, UserRound } from "lucide-react";
+import { Briefcase, FileText, Mail, UserRound } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import type { DashboardCandidate } from "@/features/dashboard/types/dashboard.types";
@@ -29,16 +30,22 @@ export function ProfileSummary({ candidate }: ProfileSummaryProps) {
             >
               {candidate.avatarInitials}
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="mb-1 flex items-center gap-2">
                 <UserRound className="h-4 w-4 text-primary" aria-hidden="true" />
                 <h2 className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
                   Profile Summary
                 </h2>
               </div>
-              <p className="text-sm font-semibold text-white">
+              <p className="truncate text-sm font-semibold text-white">
                 {candidate.fullName}
               </p>
+              {candidate.email ? (
+                <p className="mt-1 inline-flex max-w-full items-center gap-1.5 text-xs text-muted-foreground">
+                  <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span className="truncate">{candidate.email}</span>
+                </p>
+              ) : null}
             </div>
           </div>
 
@@ -77,10 +84,17 @@ export function ProfileSummary({ candidate }: ProfileSummaryProps) {
               Preferred Role
             </p>
             <p className="text-sm font-medium text-white">
-              {candidate.preferredRole}
+              {candidate.preferredRole || "—"}
             </p>
             <p className="text-xs text-muted-foreground">
-              Experience Level: {candidate.experienceLevel}
+              Experience: {candidate.experienceLevel || "—"}
+            </p>
+            <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <FileText className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+              Resume status
+              <Badge variant="purple" className="ml-1 capitalize tracking-normal normal-case">
+                {candidate.resumeStatus || "unknown"}
+              </Badge>
             </p>
           </div>
         </CardContent>

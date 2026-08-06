@@ -19,6 +19,7 @@ export const MOCK_INTERVIEW_PLAN: InterviewPlan = {
   candidate: {
     id: DEFAULT_PLANNING_CANDIDATE_ID,
     fullName: "Alexander Johnson",
+    email: "alexander.johnson@example.com",
     title: "Senior Solutions Architect",
     level: "L7 Architect",
     percentileLabel: "Top 2%",
@@ -26,6 +27,10 @@ export const MOCK_INTERVIEW_PLAN: InterviewPlan = {
     resumeScore: 91,
     readinessScore: 86,
     selectedRole: "Principal Engineer",
+    resumeId: "RES-2024-ALEX",
+    resumeFileName: "alex-johnson-resume.pdf",
+    resumeStatus: "analyzed",
+    resumeUploadedAt: "2026-08-01T10:15:00.000Z",
   },
   configuration: DEFAULT_INTERVIEW_CONFIGURATION,
   agents: [
@@ -144,6 +149,13 @@ export const MOCK_INTERVIEW_PLAN: InterviewPlan = {
     confidenceScore: 92,
     planningProgress: 34,
     engineStatus: "SYNTHESIZING ROADMAP",
+    difficulty: "extreme",
+    skillsToCover: [
+      "System Design",
+      "Concurrency",
+      "Cloud Native",
+      "Behavioral",
+    ],
   },
   skillDistribution: [
     { label: "Architecture", value: 94 },

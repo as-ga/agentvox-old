@@ -21,6 +21,17 @@ export interface UploadResumePayload extends ResumeCandidateInfo {
   file: File;
 }
 
+export interface ResumeRecord {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  status: string;
+  uploadedAt: string;
+  candidateId: string;
+  candidate: ResumeCandidateInfo;
+}
+
 export interface UploadResumeResponse {
   id: string;
   fileName: string;
@@ -28,6 +39,10 @@ export interface UploadResumeResponse {
   mimeType: string;
   uploadedAt: string;
   candidate: ResumeCandidateInfo;
+}
+
+export interface DeleteResumeResponse {
+  message: string;
 }
 
 export type UploadStatus = "idle" | "uploading" | "success" | "error";

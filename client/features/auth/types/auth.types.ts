@@ -2,6 +2,8 @@ export interface AuthUser {
   id: string;
   email: string;
   fullName: string;
+  role: string;
+  isActive: boolean;
   avatarUrl: string | null;
 }
 
@@ -50,6 +52,12 @@ export interface RefreshTokenResponse extends AuthTokens {}
 export interface LogoutRequest {
   refreshToken: string | null;
 }
+
+export interface LogoutResponse {
+  message: string;
+}
+
+export type CurrentUserResponse = AuthUser;
 
 export interface AuthSession extends AuthTokens {
   user: AuthUser;

@@ -1,185 +1,178 @@
 "use client";
 
 import { candidateService } from "@/features/candidate/services/candidate.service";
-import type { CandidateDossier } from "@/features/candidate/types/candidate.types";
-import {
-  DEFAULT_ROOM_INTERVIEW_ID,
-  MOCK_INTERVIEW_ROOM_SESSION,
-  simulateRoomLatency,
-} from "@/features/interview/data/mock-interview-room";
-import {
-  DEFAULT_INTERVIEW_ID,
-  DEFAULT_PLANNING_CANDIDATE_ID,
-  MOCK_INTERVIEW_PLAN,
-  simulatePlanningLatency,
-} from "@/features/interview/data/mock-planning";
+import type {
+  CandidateDossier,
+  ResumeDetails,
+} from "@/features/candidate/types/candidate.types";
 import type {
   CreateInterviewRequest,
   CreateInterviewResponse,
   EndInterviewRequest,
   EndInterviewResponse,
-  InterviewConfiguration,
   InterviewPlan,
+  InterviewQuestion,
   InterviewRoomSession,
   PlanInterviewRequest,
   PlanInterviewResponse,
   StartInterviewRequest,
   StartInterviewResponse,
+  TranscriptEntry,
 } from "@/features/interview/types/interview.types";
-import { apiClient } from "@/services/api/client";
-
-const useMockApi = process.env.NEXT_PUBLIC_USE_MOCK_API !== "false";
-
-function applyConfiguration(
-  plan: InterviewPlan,
-  configuration: InterviewConfiguration
-): InterviewPlan {
-  return {
-    ...plan,
-    configuration,
-    summary: {
-      ...plan.summary,
-      estimatedDurationMinutes: configuration.durationMinutes,
-      expectedQuestionCount: configuration.questionCount,
-    },
-    candidate: {
-      ...plan.candidate,
-      selectedRole: configuration.role,
-    },
-  };
-}
+import {
+  mapCreateInterviewResponse,
+  mapInterviewPlan,
+  mapPlanningCandidate,
+} from "@/features/interview/utils/planning-mappers";
+import {
+  mapEndInterviewResponse,
+  mapInterviewRoomSession,
+  mapQuestionsPayload,
+  mapStartInterviewResponse,
+  mapTranscriptPayload,
+  mergeRoomSession,
+} from "@/features/interview/utils/room-mappers";
+import { api } from "@/services/api/client";
 
 export const interviewService = {
   async getCandidate(id: string): Promise<CandidateDossier> {
     return candidateService.getCandidate(id);
   },
 
-  async getInterviewPlan(
-    interviewId: string,
-    candidateId: string = DEFAULT_PLANNING_CANDIDATE_ID
-  ): Promise<InterviewPlan> {
-    if (useMockApi) {
-      await simulatePlanningLatency();
-
-      if (
-        interviewId !== DEFAULT_INTERVIEW_ID &&
-        interviewId !== "default"
-      ) {
-        throw new Error(`Interview plan ${interviewId} was not found`);
-      }
-
-      return {
-        ...MOCK_INTERVIEW_PLAN,
-        candidate: {
-          ...MOCK_INTERVIEW_PLAN.candidate,
-          id: candidateId,
-        },
-      };
-    }
-
-    const { data } = await apiClient.get<InterviewPlan>(
-      `/interview/${interviewId}/plan`
-    );
-    return data;
+  async getResume(id: string): Promise<ResumeDetails> {
+    return candidateService.getResume(id);
   },
 
   async createInterview(
     payload: CreateInterviewRequest
   ): Promise<CreateInterviewResponse> {
-    if (useMockApi) {
-      await simulatePlanningLatency(350);
-
-      return {
-        interviewId: DEFAULT_INTERVIEW_ID,
-        status: "created",
-      };
-    }
-
-    const { data } = await apiClient.post<CreateInterviewResponse>(
+    const data = await api.post<unknown>(
       "/interview/create",
-      payload
+      toCreateBody(payload)
     );
-    return data;
+    return mapCreateInterviewResponse(data);
   },
 
   async planInterview(
-    payload: PlanInterviewRequest
-  ): Promise<PlanInterviewResponse> {
-    if (useMockApi) {
-      await simulatePlanningLatency(500);
-
-      return {
-        plan: applyConfiguration(MOCK_INTERVIEW_PLAN, payload.configuration),
-      };
+    payload: PlanInterviewRequest,
+    context?: {
+      dossier: CandidateDossier;
+      resume: ResumeDetails;
     }
-
-    const { data } = await apiClient.post<PlanInterviewResponse>(
+  ): Promise<PlanInterviewResponse> {
+    const data = await api.post<unknown>(
       "/interview/plan",
-      payload
+      toPlanBody(payload)
     );
-    return data;
+
+    const fallbackCandidate = context
+      ? mapPlanningCandidate(
+          context.dossier,
+          context.resume,
+          payload.configuration.role
+        )
+      : {
+          id: payload.candidateId,
+          fullName: "",
+          email: "",
+          title: "",
+          level: "",
+          percentileLabel: "",
+          avatarInitials: "AV",
+          resumeScore: 0,
+          readinessScore: 0,
+          selectedRole: payload.configuration.role,
+          resumeId: payload.resumeId,
+          resumeFileName: null,
+          resumeStatus: "unknown",
+          resumeUploadedAt: null,
+        };
+
+    const plan: InterviewPlan = mapInterviewPlan(data, {
+      configuration: payload.configuration,
+      candidate: fallbackCandidate,
+    });
+
+    return { plan };
   },
 
   async getInterview(id: string): Promise<InterviewRoomSession> {
-    if (useMockApi) {
-      await simulateRoomLatency();
+    const data = await api.get<unknown>(`/interview/${id}`);
+    return mapInterviewRoomSession(data);
+  },
 
-      if (id !== DEFAULT_ROOM_INTERVIEW_ID && id !== DEFAULT_INTERVIEW_ID) {
-        throw new Error(`Interview ${id} was not found`);
-      }
+  async getQuestions(interviewId: string): Promise<{
+    questions: InterviewQuestion[];
+    currentQuestion: InterviewQuestion | null;
+    currentIndex: number;
+  }> {
+    const data = await api.get<unknown>(`/interview/${interviewId}/questions`);
+    return mapQuestionsPayload(data);
+  },
 
-      return {
-        ...MOCK_INTERVIEW_ROOM_SESSION,
-        id,
-      };
-    }
+  async getTranscript(interviewId: string): Promise<TranscriptEntry[]> {
+    const data = await api.get<unknown>(`/interview/${interviewId}/transcript`);
+    return mapTranscriptPayload(data);
+  },
 
-    const { data } = await apiClient.get<InterviewRoomSession>(
-      `/interview/${id}`
-    );
-    return data;
+  async getInterviewRoom(interviewId: string): Promise<InterviewRoomSession> {
+    const [interview, questionsPayload, transcriptPayload] = await Promise.all([
+      api.get<unknown>(`/interview/${interviewId}`),
+      api.get<unknown>(`/interview/${interviewId}/questions`).catch(() => null),
+      api.get<unknown>(`/interview/${interviewId}/transcript`).catch(() => null),
+    ]);
+
+    const base = mapInterviewRoomSession(interview);
+    return mergeRoomSession({
+      interview: base,
+      questionsPayload: questionsPayload ?? undefined,
+      transcriptPayload: transcriptPayload ?? undefined,
+    });
   },
 
   async startInterview(
     payload: StartInterviewRequest
   ): Promise<StartInterviewResponse> {
-    if (useMockApi) {
-      await simulateRoomLatency(300);
-
-      return {
-        session: {
-          ...MOCK_INTERVIEW_ROOM_SESSION,
-          id: payload.interviewId,
-          status: "live",
-          phase: "live",
-        },
-      };
-    }
-
-    const { data } = await apiClient.post<StartInterviewResponse>(
-      "/interview/start",
-      payload
-    );
-    return data;
+    const data = await api.post<unknown>("/interview/start", {
+      interview_id: payload.interviewId,
+    });
+    return mapStartInterviewResponse(data);
   },
 
   async endInterview(
     payload: EndInterviewRequest
   ): Promise<EndInterviewResponse> {
-    if (useMockApi) {
-      await simulateRoomLatency(250);
-
-      return {
-        interviewId: payload.interviewId,
-        status: "ended",
-        endedAt: new Date().toISOString(),
-      };
-    }
-
-    const { data } = await apiClient.post<EndInterviewResponse>(
-      "/interview/end",
-      payload
-    );
-    return data;
+    const data = await api.post<unknown>("/interview/end", {
+      interview_id: payload.interviewId,
+      reason: payload.reason,
+    });
+    return mapEndInterviewResponse(data);
   },
 };
+
+function toPlanBody(payload: PlanInterviewRequest): Record<string, string | number> {
+  return {
+    candidate_id: payload.candidateId,
+    resume_id: payload.resumeId,
+    role: payload.configuration.role,
+    difficulty: payload.configuration.difficulty,
+    duration_minutes: payload.configuration.durationMinutes,
+    question_count: payload.configuration.questionCount,
+    interview_type: payload.configuration.interviewType,
+  };
+}
+
+function toCreateBody(
+  payload: CreateInterviewRequest
+): Record<string, string | number | null> {
+  return {
+    candidate_id: payload.candidateId,
+    resume_id: payload.resumeId,
+    role: payload.configuration.role,
+    complexity: payload.configuration.difficulty,
+    duration_seconds: payload.configuration.durationMinutes * 60,
+    question_count: payload.configuration.questionCount,
+    interview_type: payload.configuration.interviewType,
+    difficulty: payload.configuration.difficulty,
+  };
+}

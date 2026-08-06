@@ -16,8 +16,11 @@ import { RecentActivity } from "@/features/admin/components/recent-activity";
 import { SystemHealth } from "@/features/admin/components/system-health";
 import { SystemMetrics } from "@/features/admin/components/system-metrics";
 import { UsageChart } from "@/features/admin/components/usage-chart";
-import { useAdmin } from "@/features/admin/hooks/use-admin";
-import { normalizeApiError } from "@/services/api/errors";
+import {
+  getAdminDashboardErrorMessage,
+  isNotFoundError,
+  useAdmin,
+} from "@/features/admin/hooks/use-admin";
 
 export function AdminView() {
   const { data, isLoading, isError, error, refetch, isFetching } = useAdmin();
@@ -33,13 +36,20 @@ export function AdminView() {
 
       {!isLoading && isError ? (
         <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-          <QueryErrorState
-            title="Unable to load admin dashboard"
-            message={normalizeApiError(error).message}
-            onRetry={() => {
-              void refetch();
-            }}
-          />
+          {isNotFoundError(error) ? (
+            <EmptyState
+              title="Admin dashboard unavailable"
+              description={getAdminDashboardErrorMessage(error)}
+            />
+          ) : (
+            <QueryErrorState
+              title="Unable to load admin dashboard"
+              message={getAdminDashboardErrorMessage(error)}
+              onRetry={() => {
+                void refetch();
+              }}
+            />
+          )}
         </div>
       ) : null}
 
@@ -47,7 +57,7 @@ export function AdminView() {
         <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
           <EmptyState
             title="Admin dashboard unavailable"
-            description="Platform telemetry will appear once admin analytics endpoints are connected."
+            description="Platform telemetry will appear once admin analytics endpoints return data."
           />
         </div>
       ) : null}

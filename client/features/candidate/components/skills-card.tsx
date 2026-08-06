@@ -27,25 +27,35 @@ export function SkillsCard({ skills }: SkillsCardProps) {
             Skill distribution by proficiency
           </p>
 
-          <ul className="mt-4 space-y-3" aria-label="Skill distribution">
-            {skills.map((skill, index) => (
-              <motion.li
-                key={skill.name}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.25, delay: 0.04 * index }}
-                className="space-y-1.5"
-              >
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="font-medium text-white">{skill.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {skill.proficiency}%
-                  </span>
-                </div>
-                <Progress value={skill.proficiency} className="h-1.5" />
-              </motion.li>
-            ))}
-          </ul>
+          {skills.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">
+              No skills available yet. Run AI analysis to extract skills.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-3" aria-label="Skill distribution">
+              {skills.map((skill, index) => (
+                <motion.li
+                  key={skill.name}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.25, delay: 0.04 * index }}
+                  className="space-y-1.5"
+                >
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-medium text-white">{skill.name}</span>
+                    {typeof skill.proficiency === "number" ? (
+                      <span className="text-xs text-muted-foreground">
+                        {skill.proficiency}%
+                      </span>
+                    ) : null}
+                  </div>
+                  {typeof skill.proficiency === "number" ? (
+                    <Progress value={skill.proficiency} className="h-1.5" />
+                  ) : null}
+                </motion.li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
     </motion.div>

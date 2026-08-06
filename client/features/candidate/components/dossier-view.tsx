@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Play, Sparkles } from "lucide-react";
+import { Loader2, Play, RefreshCw, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/feedback/empty-state";
 import { QueryErrorState } from "@/components/feedback/query-error-state";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { AiSummaryCard } from "@/features/candidate/components/ai-summary-card";
 import { CandidateProfile } from "@/features/candidate/components/candidate-profile";
 import { CompetencyRadar } from "@/features/candidate/components/competency-radar";
@@ -18,18 +18,45 @@ import { EducationCard } from "@/features/candidate/components/education-card";
 import { ExperienceCard } from "@/features/candidate/components/experience-card";
 import { InterviewRoadmap } from "@/features/candidate/components/interview-roadmap";
 import { ProjectsCard } from "@/features/candidate/components/projects-card";
+import { ResumeMetaCard } from "@/features/candidate/components/resume-meta-card";
 import { SkillsCard } from "@/features/candidate/components/skills-card";
 import { StrengthsCard } from "@/features/candidate/components/strengths-card";
 import { WeaknessesCard } from "@/features/candidate/components/weaknesses-card";
-import { DEFAULT_CANDIDATE_ID } from "@/features/candidate/data/mock-candidate";
-import { useCandidate } from "@/features/candidate/hooks/use-candidate";
-import { normalizeApiError } from "@/services/api/errors";
+import {
+  getUseAnalyzeErrorMessage,
+  getUseCandidateErrorMessage,
+  getUseResumeErrorMessage,
+  useAnalyzeResume,
+  useCandidate,
+  useResume,
+} from "@/features/candidate/hooks/use-candidate";
+import { useResumeStore } from "@/features/resume/store/resume.store";
+import { isNotFoundError } from "@/features/candidate/utils/candidate-errors";
 import { cn } from "@/lib/utils";
+
+function analysisBadgeLabel(status: string): string {
+  if (status === "complete") {
+    return "AI Analysis Complete";
+  }
+  if (status === "pending") {
+    return "AI Analysis Pending";
+  }
+  if (status === "failed") {
+    return "AI Analysis Failed";
+  }
+  return "AI Analysis Idle";
+}
 
 export function DossierView() {
   const searchParams = useSearchParams();
+  const storedResume = useResumeStore((state) => state.currentResume);
+
   const candidateId =
-    searchParams.get("id")?.trim() || DEFAULT_CANDIDATE_ID;
+    searchParams.get("id")?.trim() ||
+    storedResume?.candidateId ||
+    "";
+
+  const resumeIdFromQuery = searchParams.get("resumeId")?.trim() || null;
 
   const {
     data,
@@ -40,6 +67,15 @@ export function DossierView() {
     isFetching,
   } = useCandidate(candidateId);
 
+  const resumeId =
+    resumeIdFromQuery || data?.profile.resumeId || storedResume?.id || undefined;
+
+  const resumeQuery = useResume(resumeId);
+  const analyzeResume = useAnalyzeResume();
+
+  const showEmptyId = !candidateId;
+  const candidateNotFound = isError && isNotFoundError(error);
+
   return (
     <DashboardLayout
       breadcrumbs={[
@@ -47,21 +83,37 @@ export function DossierView() {
         { label: "Active Sessions", current: true },
       ]}
     >
-      {isLoading ? <DossierSkeleton /> : null}
-
-      {!isLoading && isError ? (
+      {showEmptyId ? (
         <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-          <QueryErrorState
-            title="Unable to load candidate dossier"
-            message={normalizeApiError(error).message}
-            onRetry={() => {
-              void refetch();
-            }}
+          <EmptyState
+            title="No candidate selected"
+            description="Open a candidate dossier with an id, or upload a resume first."
           />
         </div>
       ) : null}
 
-      {!isLoading && !isError && !data ? (
+      {!showEmptyId && isLoading ? <DossierSkeleton /> : null}
+
+      {!showEmptyId && !isLoading && isError ? (
+        <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+          {candidateNotFound ? (
+            <EmptyState
+              title="Candidate not found"
+              description={getUseCandidateErrorMessage(error)}
+            />
+          ) : (
+            <QueryErrorState
+              title="Unable to load candidate dossier"
+              message={getUseCandidateErrorMessage(error)}
+              onRetry={() => {
+                void refetch();
+              }}
+            />
+          )}
+        </div>
+      ) : null}
+
+      {!showEmptyId && !isLoading && !isError && !data ? (
         <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
           <EmptyState
             title="No candidate dossier found"
@@ -70,7 +122,7 @@ export function DossierView() {
         </div>
       ) : null}
 
-      {!isLoading && !isError && data ? (
+      {!showEmptyId && !isLoading && !isError && data ? (
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
           <motion.header
             initial={{ opacity: 0, y: 12 }}
@@ -82,7 +134,7 @@ export function DossierView() {
               <div className="flex flex-wrap items-center gap-3">
                 <Badge variant="purple" className="gap-1.5">
                   <Sparkles className="h-3 w-3" aria-hidden="true" />
-                  AI Analysis Complete
+                  {analysisBadgeLabel(data.analysisStatus)}
                 </Badge>
                 <span className="font-mono text-xs text-muted-foreground">
                   ID: {data.profile.id}
@@ -102,17 +154,86 @@ export function DossierView() {
               </p>
             </div>
 
-            <Link
-              href="/interviews/planning"
-              className={cn(
-                buttonVariants({ size: "lg" }),
-                "h-11 shrink-0 glow-purple"
-              )}
-            >
-              <Play className="h-4 w-4" aria-hidden="true" />
-              Start Interview Process
-            </Link>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11"
+                disabled={isFetching}
+                onClick={() => {
+                  void refetch();
+                  if (resumeId) {
+                    void resumeQuery.refetch();
+                  }
+                }}
+              >
+                <RefreshCw
+                  className={cn("h-4 w-4", isFetching && "animate-spin")}
+                  aria-hidden="true"
+                />
+                Refresh
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11"
+                disabled={!resumeId || analyzeResume.isPending}
+                aria-busy={analyzeResume.isPending}
+                onClick={() => {
+                  if (!resumeId) {
+                    return;
+                  }
+                  void analyzeResume.mutateAsync({ resumeId });
+                }}
+              >
+                {analyzeResume.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Sparkles className="h-4 w-4" aria-hidden="true" />
+                )}
+                Analyze Resume
+              </Button>
+
+              <Link
+                href="/interviews/planning"
+                className={cn(
+                  buttonVariants({ size: "lg" }),
+                  "h-11 shrink-0 glow-purple"
+                )}
+              >
+                <Play className="h-4 w-4" aria-hidden="true" />
+                Start Interview Process
+              </Link>
+            </div>
           </motion.header>
+
+          {analyzeResume.isError ? (
+            <div className="mb-4">
+              <QueryErrorState
+                title="Analysis failed"
+                message={getUseAnalyzeErrorMessage(analyzeResume.error)}
+                onRetry={() => {
+                  if (!resumeId) {
+                    return;
+                  }
+                  void analyzeResume.mutateAsync({ resumeId });
+                }}
+              />
+            </div>
+          ) : null}
+
+          {resumeId && resumeQuery.isError ? (
+            <div className="mb-4">
+              <QueryErrorState
+                title="Resume missing"
+                message={getUseResumeErrorMessage(resumeQuery.error)}
+                onRetry={() => {
+                  void resumeQuery.refetch();
+                }}
+              />
+            </div>
+          ) : null}
 
           <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)_320px]">
             <div className="space-y-4">
@@ -120,6 +241,9 @@ export function DossierView() {
                 profile={data.profile}
                 competencies={data.coreCompetencies}
               />
+              {resumeQuery.data ? (
+                <ResumeMetaCard resume={resumeQuery.data} />
+              ) : null}
               <SkillsCard skills={data.skills} />
               <ExperienceCard experience={data.experience} />
               <ProjectsCard projects={data.projects} />
@@ -140,8 +264,10 @@ export function DossierView() {
             <div className="space-y-4">
               <AiSummaryCard
                 summary={data.aiSummary}
+                experienceSummary={data.experienceSummary}
+                educationSummary={data.educationSummary}
                 readinessScore={data.roadmap.readinessScore}
-                recommendedFocus={data.roadmap.recommendedFocus}
+                recommendedFocus={data.suggestedInterviewFocus}
               />
               <InterviewRoadmap roadmap={data.roadmap} />
             </div>

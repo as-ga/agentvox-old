@@ -15,16 +15,22 @@ interface UpcomingInterviewsProps {
 const STATUS_CLASS: Record<UpcomingInterview["status"], string> = {
   scheduled: "border-sky-400/30 bg-sky-500/10 text-sky-200",
   confirmed: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
+  live: "border-amber-400/30 bg-amber-500/10 text-amber-200",
   completed: "border-primary/30 bg-primary/10 text-primary",
   cancelled: "border-destructive/30 bg-destructive/10 text-destructive",
 };
 
 function formatDate(isoDate: string): string {
+  const value = isoDate.includes("T") ? isoDate : `${isoDate}T00:00:00`;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return isoDate;
+  }
   return new Intl.DateTimeFormat("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
-  }).format(new Date(`${isoDate}T00:00:00`));
+  }).format(date);
 }
 
 export function UpcomingInterviews({ interviews }: UpcomingInterviewsProps) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MapPin, UserRound } from "lucide-react";
+import { Briefcase, Mail, MapPin, Phone, UserRound } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import type { CandidateProfile as CandidateProfileData } from "@/features/candidate/types/candidate.types";
@@ -35,31 +35,57 @@ export function CandidateProfile({
           <h2 className="text-xl font-semibold text-white">{profile.fullName}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{profile.title}</p>
 
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-              {profile.location}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
-              {profile.yearsOfExperience}+ yrs
-            </span>
-          </div>
+          <ul className="mt-3 space-y-2 text-xs text-muted-foreground">
+            <li className="flex items-center gap-1.5">
+              <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="truncate">{profile.email}</span>
+            </li>
+            {profile.phone ? (
+              <li className="flex items-center gap-1.5">
+                <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>{profile.phone}</span>
+              </li>
+            ) : null}
+            {profile.targetRole ? (
+              <li className="flex items-center gap-1.5">
+                <Briefcase className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>Applied role: {profile.targetRole}</span>
+              </li>
+            ) : null}
+            <li className="flex flex-wrap items-center gap-3">
+              {profile.location ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
+                  {profile.location}
+                </span>
+              ) : null}
+              <span className="inline-flex items-center gap-1.5">
+                <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
+                {profile.yearsOfExperience}+ yrs experience
+              </span>
+            </li>
+          </ul>
 
           <div className="mt-5">
             <p className="mb-2 text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
               Core Competencies
             </p>
-            <ul className="flex flex-wrap gap-2" aria-label="Core competencies">
-              {competencies.map((skill) => (
-                <li
-                  key={skill}
-                  className="rounded-lg border border-border/80 bg-[#0f1018] px-2.5 py-1 text-xs text-muted-foreground"
-                >
-                  {skill}
-                </li>
-              ))}
-            </ul>
+            {competencies.length > 0 ? (
+              <ul className="flex flex-wrap gap-2" aria-label="Core competencies">
+                {competencies.map((skill) => (
+                  <li
+                    key={skill}
+                    className="rounded-lg border border-border/80 bg-[#0f1018] px-2.5 py-1 text-xs text-muted-foreground"
+                  >
+                    {skill}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No competencies available yet.
+              </p>
+            )}
           </div>
 
           <div className="mt-5 rounded-xl border border-border/60 bg-[#0f1018]/80 p-3">
@@ -67,7 +93,7 @@ export function CandidateProfile({
               Resume Summary
             </p>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              {profile.summary}
+              {profile.summary || "No summary available yet."}
             </p>
           </div>
         </CardContent>

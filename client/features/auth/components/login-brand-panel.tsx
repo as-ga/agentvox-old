@@ -5,6 +5,7 @@ import { Cpu, Eye, Network, Shield, Sparkles } from "lucide-react";
 
 import { Logo } from "@/components/shared/logo";
 import { Card, CardContent } from "@/components/ui/card";
+import Image from "next/image";
 
 const FEATURES = [
   {
@@ -59,8 +60,8 @@ export function LoginBrandPanel() {
           </div>
 
           <h2 className="text-4xl font-bold leading-tight tracking-tight text-white xl:text-5xl">
-            Experience{" "}
-            <span className="gradient-text">Multi-Agent</span> Interviewing
+            Experience <span className="gradient-text">Multi-Agent</span>{" "}
+            Interviewing
           </h2>
           <p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground xl:text-base">
             Harness the power of Vox-1, our proprietary AI engine, to conduct
@@ -69,7 +70,8 @@ export function LoginBrandPanel() {
           </p>
         </div>
 
-        <div className="relative mt-10 overflow-hidden rounded-2xl border border-border/70 bg-card/40">
+        {/* <div className="relative mt-10 overflow-hidden rounded-2xl border border-border/70 bg-card/40">
+          cccc
           <div
             aria-hidden="true"
             className="aspect-[16/9] bg-[radial-gradient(circle_at_30%_40%,_rgba(139,92,246,0.35),_transparent_45%),radial-gradient(circle_at_70%_60%,_rgba(59,130,246,0.25),_transparent_40%),linear-gradient(135deg,#111827,#0a0a0f)]"
@@ -84,9 +86,10 @@ export function LoginBrandPanel() {
               <span className="text-primary">SYNC: OPTIMAL</span>
             </div>
           </div>
-        </div>
+        </div> */}
+        <Image src={"/auth/image.png"} alt="ss" height={600} width={1000} />
 
-        <div className="mt-6 grid grid-cols-2 gap-3">
+        {/* <div className="mt-6 grid grid-cols-2 gap-3">
           {FEATURES.map((feature) => {
             const Icon = feature.icon;
 
@@ -109,7 +112,7 @@ export function LoginBrandPanel() {
               </Card>
             );
           })}
-        </div>
+        </div> */}
       </div>
 
       <div className="relative z-10 mt-8 flex items-center justify-between gap-4 text-xs text-muted-foreground">

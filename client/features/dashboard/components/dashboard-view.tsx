@@ -1,5 +1,10 @@
 "use client";
 
+import { useMemo } from "react";
+
+import { EmptyState } from "@/components/feedback/empty-state";
+import { QueryErrorState } from "@/components/feedback/query-error-state";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { AchievementsCard } from "@/features/dashboard/components/achievements-card";
 import { ActivityTimeline } from "@/features/dashboard/components/activity-timeline";
 import { DashboardSkeleton } from "@/features/dashboard/components/dashboard-skeleton";
@@ -13,18 +18,62 @@ import { RecentInterviews } from "@/features/dashboard/components/recent-intervi
 import { StatsOverview } from "@/features/dashboard/components/stats-overview";
 import { UpcomingInterviews } from "@/features/dashboard/components/upcoming-interviews";
 import { WelcomeBanner } from "@/features/dashboard/components/welcome-banner";
-import { useDashboard } from "@/features/dashboard/hooks/use-dashboard";
-import { EmptyState } from "@/components/feedback/empty-state";
-import { QueryErrorState } from "@/components/feedback/query-error-state";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { normalizeApiError } from "@/services/api/errors";
+import {
+  getUseDashboardErrorMessage,
+  getUseDashboardInterviewsErrorMessage,
+  getUseDashboardReportsErrorMessage,
+  useDashboard,
+  useDashboardCandidate,
+  useDashboardInterviews,
+  useDashboardReports,
+} from "@/features/dashboard/hooks/use-dashboard";
+import { mergeDashboardSources } from "@/features/dashboard/utils/dashboard-mappers";
+import { useResumeStore } from "@/features/resume/store/resume.store";
 
 export function DashboardView() {
-  const { data, isLoading, isError, error, refetch, isFetching } =
-    useDashboard();
+  const storedResume = useResumeStore((state) => state.currentResume);
+
+  const dashboardQuery = useDashboard();
+  const interviewsQuery = useDashboardInterviews();
+  const reportsQuery = useDashboardReports();
+
+  const candidateId =
+    dashboardQuery.data?.candidate.id ||
+    storedResume?.candidateId ||
+    "";
+
+  const candidateQuery = useDashboardCandidate(candidateId);
+
+  const data = useMemo(() => {
+    if (!dashboardQuery.data) {
+      return null;
+    }
+
+    return mergeDashboardSources({
+      dashboard: dashboardQuery.data,
+      candidate: candidateQuery.data,
+      interviews: interviewsQuery.data,
+      reports: reportsQuery.data,
+    });
+  }, [
+    dashboardQuery.data,
+    candidateQuery.data,
+    interviewsQuery.data,
+    reportsQuery.data,
+  ]);
+
+  const isLoading = dashboardQuery.isLoading;
+  const isError = dashboardQuery.isError;
+  const isFetching =
+    dashboardQuery.isFetching ||
+    candidateQuery.isFetching ||
+    interviewsQuery.isFetching ||
+    reportsQuery.isFetching;
 
   const successRate =
-    data?.metrics.find((metric) => metric.id === "success")?.value ?? 0;
+    data?.metrics.find(
+      (metric) => metric.id === "success" || metric.id.includes("success")
+    )?.value ?? 0;
 
   return (
     <DashboardLayout
@@ -38,10 +87,15 @@ export function DashboardView() {
       {!isLoading && isError ? (
         <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
           <QueryErrorState
-            title="Unable to load candidate dashboard"
-            message={normalizeApiError(error).message}
+            title="Dashboard unavailable"
+            message={getUseDashboardErrorMessage(dashboardQuery.error)}
             onRetry={() => {
-              void refetch();
+              void dashboardQuery.refetch();
+              void interviewsQuery.refetch();
+              void reportsQuery.refetch();
+              if (candidateId) {
+                void candidateQuery.refetch();
+              }
             }}
           />
         </div>
@@ -66,12 +120,38 @@ export function DashboardView() {
             </p>
           ) : null}
 
+          {interviewsQuery.isError ? (
+            <QueryErrorState
+              title="No interviews found"
+              message={getUseDashboardInterviewsErrorMessage(
+                interviewsQuery.error
+              )}
+              onRetry={() => {
+                void interviewsQuery.refetch();
+              }}
+            />
+          ) : null}
+
+          {reportsQuery.isError ? (
+            <QueryErrorState
+              title="No reports available"
+              message={getUseDashboardReportsErrorMessage(reportsQuery.error)}
+              onRetry={() => {
+                void reportsQuery.refetch();
+              }}
+            />
+          ) : null}
+
           <StatsOverview metrics={data.metrics} />
 
           <PerformanceChart
             performanceTrend={data.performanceTrend}
             weeklyProgress={data.weeklyProgress}
+            monthlyProgress={data.monthlyProgress}
             skillImprovement={data.skillImprovement}
+            scoreDistribution={data.scoreDistribution}
+            averageTechnicalScore={data.averageTechnicalScore}
+            averageBehavioralScore={data.averageBehavioralScore}
           />
 
           <section
@@ -108,7 +188,7 @@ export function DashboardView() {
           </section>
 
           <footer className="flex flex-col gap-2 border-t border-white/10 pt-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <p>AgentVox Candidate Workspace · Mock data mode</p>
+            <p>AgentVox Candidate Workspace</p>
             <p>
               Last data sync:{" "}
               {new Intl.DateTimeFormat("en-US", {

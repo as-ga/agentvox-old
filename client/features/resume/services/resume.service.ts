@@ -1,10 +1,19 @@
 "use client";
 
-import { apiClient } from "@/services/api/client";
+import { api } from "@/services/api/client";
 import type {
+  DeleteResumeResponse,
+  ResumeCandidateInfo,
+  ResumeRecord,
   UploadResumePayload,
   UploadResumeResponse,
 } from "@/features/resume/types/resume.types";
+import {
+  mapBackendResume,
+  toUploadResumeResponse,
+  type BackendMessageDto,
+  type BackendResumeDto,
+} from "@/features/resume/utils/resume-mappers";
 
 export interface UploadResumeOptions {
   onProgress?: (progress: number) => void;
@@ -16,40 +25,39 @@ export const resumeService = {
     payload: UploadResumePayload,
     options: UploadResumeOptions = {}
   ): Promise<UploadResumeResponse> {
-    const formData = new FormData();
-    formData.append("fullName", payload.fullName);
-    formData.append("email", payload.email);
-    formData.append("targetRole", payload.targetRole);
-    formData.append("yearsOfExperience", String(payload.yearsOfExperience));
-    formData.append("file", payload.file);
+    const candidate: ResumeCandidateInfo = {
+      fullName: payload.fullName,
+      email: payload.email,
+      targetRole: payload.targetRole,
+      yearsOfExperience: payload.yearsOfExperience,
+    };
 
-    const { data } = await apiClient.post<UploadResumeResponse>(
-      "/resumes/upload",
-      formData,
+    const data = await api.upload<BackendResumeDto>(
+      "/resume/upload",
+      payload.file,
       {
-        headers: {
-          "Content-Type": "multipart/form-data",
+        fileField: "file",
+        fields: {
+          full_name: payload.fullName,
+          email: payload.email,
+          target_role: payload.targetRole,
+          years_of_experience: String(payload.yearsOfExperience),
         },
         signal: options.signal,
-        onUploadProgress: (event) => {
-          if (!options.onProgress) {
-            return;
-          }
-
-          if (!event.total || event.total <= 0) {
-            options.onProgress(0);
-            return;
-          }
-
-          const percentage = Math.min(
-            100,
-            Math.round((event.loaded * 100) / event.total)
-          );
-          options.onProgress(percentage);
-        },
+        onUploadProgress: options.onProgress,
       }
     );
 
-    return data;
+    return toUploadResumeResponse(mapBackendResume(data, candidate));
+  },
+
+  async getResume(resumeId: string): Promise<ResumeRecord> {
+    const data = await api.get<BackendResumeDto>(`/resume/${resumeId}`);
+    return mapBackendResume(data);
+  },
+
+  async deleteResume(resumeId: string): Promise<DeleteResumeResponse> {
+    const data = await api.delete<BackendMessageDto>(`/resume/${resumeId}`);
+    return { message: data.message };
   },
 };

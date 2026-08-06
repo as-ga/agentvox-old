@@ -81,13 +81,15 @@ export function WorkflowGraph({
                     <motion.div
                       animate={
                         isActive
-                          ? { scale: [1, 1.04, 1] }
-                          : { scale: 1 }
+                          ? { scale: [1, 1.05, 1], opacity: [1, 0.92, 1] }
+                          : node.status === "completed"
+                            ? { scale: 1, opacity: 1 }
+                            : { scale: 1, opacity: 0.85 }
                       }
                       transition={
                         isActive
                           ? { duration: 1.4, repeat: Infinity }
-                          : undefined
+                          : { duration: 0.35 }
                       }
                       className={cn(
                         "w-full rounded-xl border px-3 py-3 text-center text-xs font-semibold tracking-[0.08em] uppercase",

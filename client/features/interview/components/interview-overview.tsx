@@ -12,9 +12,17 @@ interface InterviewOverviewProps {
 export function InterviewOverview({ candidate }: InterviewOverviewProps) {
   const stats = [
     { label: "Candidate", value: candidate.fullName },
-    { label: "Selected Role", value: candidate.selectedRole },
+    { label: "Selected Role", value: candidate.selectedRole || "—" },
     { label: "Resume Score", value: `${candidate.resumeScore}%` },
-    { label: "Readiness Score", value: `${candidate.readinessScore}%` },
+    { label: "AI Readiness Score", value: `${candidate.readinessScore}%` },
+    {
+      label: "Resume",
+      value: candidate.resumeFileName || candidate.resumeStatus || "—",
+    },
+    {
+      label: "Resume Status",
+      value: candidate.resumeStatus || "unknown",
+    },
   ] as const;
 
   return (
@@ -24,7 +32,7 @@ export function InterviewOverview({ candidate }: InterviewOverviewProps) {
       transition={{ duration: 0.35, delay: 0.04 }}
     >
       <Card className="rounded-2xl border border-white/10 bg-[#12121a]/80 py-0 ring-0 backdrop-blur-xl">
-        <CardContent className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-4">
+        <CardContent className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
           {stats.map((stat) => (
             <div
               key={stat.label}

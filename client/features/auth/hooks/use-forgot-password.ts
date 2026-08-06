@@ -2,6 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 
+import { AUTH_MUTATION_KEYS } from "@/features/auth/constants/auth-keys";
 import type { ForgotPasswordFormValues } from "@/features/auth/schemas/forgot-password.schema";
 import { authService } from "@/features/auth/services/auth.service";
 import {
@@ -11,7 +12,7 @@ import {
 
 export function useForgotPassword() {
   return useMutation({
-    mutationKey: ["auth", "forgot-password"],
+    mutationKey: AUTH_MUTATION_KEYS.forgotPassword,
     retry: false,
     mutationFn: async (values: ForgotPasswordFormValues) => {
       return authService.forgotPassword({

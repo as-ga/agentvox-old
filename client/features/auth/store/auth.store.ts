@@ -17,6 +17,7 @@ interface AuthState {
   rememberMe: boolean;
   login: (session: AuthSession, rememberMe?: boolean) => void;
   logout: () => void;
+  setUser: (user: AuthUser) => void;
   setTokens: (tokens: AuthTokens) => void;
   clearAuth: () => void;
 }
@@ -89,6 +90,12 @@ export const useAuthStore = create<AuthState>()(
       },
       logout: () => {
         set({ ...initialState });
+      },
+      setUser: (user) => {
+        set({
+          user,
+          isAuthenticated: true,
+        });
       },
       setTokens: (tokens) => {
         set({

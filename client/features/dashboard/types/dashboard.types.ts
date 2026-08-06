@@ -1,6 +1,7 @@
 export type InterviewStatus =
   | "scheduled"
   | "confirmed"
+  | "live"
   | "completed"
   | "cancelled";
 
@@ -9,7 +10,8 @@ export type RecommendationLabel =
   | "Hire"
   | "Hold"
   | "No Hire"
-  | "Practice";
+  | "Practice"
+  | "Maybe";
 
 export type NotificationKind =
   | "activity"
@@ -19,6 +21,7 @@ export type NotificationKind =
 export interface DashboardCandidate {
   id: string;
   fullName: string;
+  email: string;
   currentRole: string;
   preferredRole: string;
   experienceLevel: string;
@@ -27,6 +30,7 @@ export interface DashboardCandidate {
   aiAssistantStatus: "online" | "analyzing" | "idle";
   resumeScore: number;
   readinessScore: number;
+  resumeStatus: string;
 }
 
 export interface DashboardMetric {
@@ -50,10 +54,21 @@ export interface WeeklyProgressPoint {
   score: number;
 }
 
+export interface MonthlyProgressPoint {
+  label: string;
+  interviews: number;
+  averageScore: number;
+}
+
 export interface SkillImprovementPoint {
   skill: string;
   previous: number;
   current: number;
+}
+
+export interface ScoreDistributionPoint {
+  label: string;
+  count: number;
 }
 
 export interface UpcomingInterview {
@@ -68,8 +83,10 @@ export interface UpcomingInterview {
 export interface RecentInterview {
   id: string;
   name: string;
+  position: string;
   company: string;
   score: number;
+  status: InterviewStatus;
   recommendation: RecommendationLabel;
   completedAt: string;
   reportId: string;
@@ -125,7 +142,11 @@ export interface CandidateDashboard {
   metrics: ReadonlyArray<DashboardMetric>;
   performanceTrend: ReadonlyArray<PerformancePoint>;
   weeklyProgress: ReadonlyArray<WeeklyProgressPoint>;
+  monthlyProgress: ReadonlyArray<MonthlyProgressPoint>;
   skillImprovement: ReadonlyArray<SkillImprovementPoint>;
+  scoreDistribution: ReadonlyArray<ScoreDistributionPoint>;
+  averageTechnicalScore: number;
+  averageBehavioralScore: number;
   upcomingInterviews: ReadonlyArray<UpcomingInterview>;
   recentInterviews: ReadonlyArray<RecentInterview>;
   interviewHistory: ReadonlyArray<InterviewHistoryItem>;
@@ -139,6 +160,7 @@ export interface CandidateDashboard {
 export interface DashboardInterviewListItem {
   id: string;
   title: string;
+  company: string;
   status: InterviewStatus;
   score: number | null;
   scheduledAt: string;

@@ -1,3 +1,4 @@
+import { mapAuthFieldName } from "@/features/auth/utils/auth-mappers";
 import { normalizeApiError } from "@/services/api/errors";
 
 export function getAuthErrorMessage(error: unknown): string {
@@ -9,8 +10,9 @@ export function getAuthFieldErrors(error: unknown): Record<string, string> {
 
   return normalized.fieldErrors.reduce<Record<string, string>>(
     (accumulator, fieldError) => {
-      if (!accumulator[fieldError.field]) {
-        accumulator[fieldError.field] = fieldError.message;
+      const field = mapAuthFieldName(fieldError.field);
+      if (!accumulator[field]) {
+        accumulator[field] = fieldError.message;
       }
       return accumulator;
     },
