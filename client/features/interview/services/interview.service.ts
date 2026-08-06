@@ -3,6 +3,11 @@
 import { candidateService } from "@/features/candidate/services/candidate.service";
 import type { CandidateDossier } from "@/features/candidate/types/candidate.types";
 import {
+  DEFAULT_ROOM_INTERVIEW_ID,
+  MOCK_INTERVIEW_ROOM_SESSION,
+  simulateRoomLatency,
+} from "@/features/interview/data/mock-interview-room";
+import {
   DEFAULT_INTERVIEW_ID,
   DEFAULT_PLANNING_CANDIDATE_ID,
   MOCK_INTERVIEW_PLAN,
@@ -11,10 +16,15 @@ import {
 import type {
   CreateInterviewRequest,
   CreateInterviewResponse,
+  EndInterviewRequest,
+  EndInterviewResponse,
   InterviewConfiguration,
   InterviewPlan,
+  InterviewRoomSession,
   PlanInterviewRequest,
   PlanInterviewResponse,
+  StartInterviewRequest,
+  StartInterviewResponse,
 } from "@/features/interview/types/interview.types";
 import { apiClient } from "@/services/api/client";
 
@@ -105,6 +115,69 @@ export const interviewService = {
 
     const { data } = await apiClient.post<PlanInterviewResponse>(
       "/interview/plan",
+      payload
+    );
+    return data;
+  },
+
+  async getInterview(id: string): Promise<InterviewRoomSession> {
+    if (useMockApi) {
+      await simulateRoomLatency();
+
+      if (id !== DEFAULT_ROOM_INTERVIEW_ID && id !== DEFAULT_INTERVIEW_ID) {
+        throw new Error(`Interview ${id} was not found`);
+      }
+
+      return {
+        ...MOCK_INTERVIEW_ROOM_SESSION,
+        id,
+      };
+    }
+
+    const { data } = await apiClient.get<InterviewRoomSession>(
+      `/interview/${id}`
+    );
+    return data;
+  },
+
+  async startInterview(
+    payload: StartInterviewRequest
+  ): Promise<StartInterviewResponse> {
+    if (useMockApi) {
+      await simulateRoomLatency(300);
+
+      return {
+        session: {
+          ...MOCK_INTERVIEW_ROOM_SESSION,
+          id: payload.interviewId,
+          status: "live",
+          phase: "live",
+        },
+      };
+    }
+
+    const { data } = await apiClient.post<StartInterviewResponse>(
+      "/interview/start",
+      payload
+    );
+    return data;
+  },
+
+  async endInterview(
+    payload: EndInterviewRequest
+  ): Promise<EndInterviewResponse> {
+    if (useMockApi) {
+      await simulateRoomLatency(250);
+
+      return {
+        interviewId: payload.interviewId,
+        status: "ended",
+        endedAt: new Date().toISOString(),
+      };
+    }
+
+    const { data } = await apiClient.post<EndInterviewResponse>(
+      "/interview/end",
       payload
     );
     return data;

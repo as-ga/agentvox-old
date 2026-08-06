@@ -104,3 +104,109 @@ export interface PlanInterviewRequest {
 export interface PlanInterviewResponse {
   plan: InterviewPlan;
 }
+
+export type RoomAgentStatus = "active" | "waiting" | "completed";
+export type InterviewRoomPhase =
+  | "loading"
+  | "live"
+  | "ended"
+  | "connection_lost"
+  | "microphone_denied"
+  | "camera_denied";
+
+export type TranscriptSpeaker = "ai" | "candidate";
+
+export interface InterviewRoomCandidate {
+  id: string;
+  fullName: string;
+  shortName: string;
+  title: string;
+  level: string;
+  skills: ReadonlyArray<string>;
+  avatarInitials: string;
+}
+
+export interface InterviewQuestion {
+  id: string;
+  index: number;
+  total: number;
+  topic: string;
+  difficulty: InterviewDifficulty;
+  prompt: string;
+  evaluatorNotes: string;
+  elapsedSeconds: number;
+}
+
+export interface TranscriptEntry {
+  id: string;
+  speaker: TranscriptSpeaker;
+  speakerLabel: string;
+  timestamp: string;
+  content: string;
+  accuracy?: number;
+}
+
+export interface LiveMetric {
+  id: string;
+  label: string;
+  score: number;
+  delta: number;
+  icon: "technical" | "communication" | "confidence" | "leadership" | "quality";
+}
+
+export interface LiveMetricPoint {
+  time: string;
+  confidence: number;
+  communication: number;
+  technical: number;
+}
+
+export interface RoomAgent {
+  id: string;
+  name: string;
+  status: RoomAgentStatus;
+  progress: number;
+  currentTask: string;
+}
+
+export interface InterviewRoomSession {
+  id: string;
+  status: "live" | "ended";
+  phase: InterviewRoomPhase;
+  candidate: InterviewRoomCandidate;
+  question: InterviewQuestion;
+  progressPercent: number;
+  estimatedRemainingLabel: string;
+  latencyMs: number;
+  isMuted: boolean;
+  isCameraOn: boolean;
+  isScreenShareEnabled: boolean;
+  isAiThinking: boolean;
+  isCandidateSpeaking: boolean;
+  speakingSpeedWpm: number;
+  sentiment: "positive" | "neutral" | "cautious";
+  aiNotes: string;
+  transcript: ReadonlyArray<TranscriptEntry>;
+  metrics: ReadonlyArray<LiveMetric>;
+  metricSeries: ReadonlyArray<LiveMetricPoint>;
+  agents: ReadonlyArray<RoomAgent>;
+}
+
+export interface StartInterviewRequest {
+  interviewId: string;
+}
+
+export interface StartInterviewResponse {
+  session: InterviewRoomSession;
+}
+
+export interface EndInterviewRequest {
+  interviewId: string;
+  reason?: "manual" | "completed" | "connection_lost";
+}
+
+export interface EndInterviewResponse {
+  interviewId: string;
+  status: "ended";
+  endedAt: string;
+}
