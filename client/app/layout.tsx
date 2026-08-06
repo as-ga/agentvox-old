@@ -7,8 +7,9 @@ import { cn } from "@/lib/utils";
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: "Agentvox",
-  description: "Agentvox",
+  title: "AgentVox — AI Interview Platform",
+  description:
+    "Multi-agent AI orchestration for technical interviews with real-time evaluation and actionable hiring insights.",
 };
 
 export default function RootLayout({
