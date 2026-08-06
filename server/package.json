@@ -4,8 +4,8 @@
   "private": "true",
   "scripts": {
     "install:py": "uv sync",
-    "dev": "uv run uvicorn app.main:app --reload",
-    "start": "uv run uvicorn app.main:app --reload",
+    "dev": "uv run main.py",
+    "start": "uv run main.py",
     "build": "echo 'No build step required for FastAPI'",
     "lint": "echo 'No linting configured'"
   }
