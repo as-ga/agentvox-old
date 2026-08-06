@@ -14,7 +14,7 @@ export interface PasswordInputProps
 export const PasswordInput = React.forwardRef<
   HTMLInputElement,
   PasswordInputProps
->(({ className, error = false, disabled, id, ...props }, ref) => {
+>(({ className, error = false, disabled, id, autoComplete, ...props }, ref) => {
   const [isVisible, setIsVisible] = React.useState(false);
   const inputId = id ?? "password";
 
@@ -28,7 +28,7 @@ export const PasswordInput = React.forwardRef<
         ref={ref}
         id={inputId}
         type={isVisible ? "text" : "password"}
-        autoComplete="current-password"
+        autoComplete={autoComplete ?? "current-password"}
         disabled={disabled}
         aria-invalid={error || undefined}
         className={cn("pr-11 pl-10", className)}

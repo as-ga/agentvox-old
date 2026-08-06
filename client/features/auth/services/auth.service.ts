@@ -7,6 +7,8 @@ import type {
   LogoutRequest,
   RefreshTokenRequest,
   RefreshTokenResponse,
+  RegisterRequest,
+  RegisterResponse,
 } from "@/features/auth/types/auth.types";
 
 export const authService = {
@@ -20,6 +22,18 @@ export const authService = {
     return data;
   },
 
+  async register(payload: RegisterRequest): Promise<RegisterResponse> {
+    const { data } = await apiClient.post<RegisterResponse>("/auth/register", {
+      fullName: payload.fullName,
+      email: payload.email,
+      password: payload.password,
+      acceptTerms: payload.acceptTerms,
+      receiveUpdates: payload.receiveUpdates,
+    });
+
+    return data;
+  },
+
   async refreshToken(
     payload: RefreshTokenRequest
   ): Promise<RefreshTokenResponse> {
@@ -27,7 +41,6 @@ export const authService = {
       "/auth/refresh",
       payload
     );
-
     return data;
   },
 

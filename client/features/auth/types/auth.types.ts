@@ -20,6 +20,18 @@ export interface LoginResponse extends AuthTokens {
   user: AuthUser;
 }
 
+export interface RegisterRequest {
+  fullName: string;
+  email: string;
+  password: string;
+  acceptTerms: boolean;
+  receiveUpdates: boolean;
+}
+
+export interface RegisterResponse extends AuthTokens {
+  user: AuthUser;
+}
+
 export interface RefreshTokenRequest {
   refreshToken: string;
 }

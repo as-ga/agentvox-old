@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import type { LoginFormValues } from "@/features/auth/schemas/login.schema";
 import { authService } from "@/features/auth/services/auth.service";
 import { useAuthStore } from "@/features/auth/store/auth.store";
-import { normalizeApiError } from "@/services/api/errors";
+import {
+  getAuthErrorMessage,
+  getAuthFieldErrors,
+} from "@/features/auth/utils/auth-errors";
 
 export function useLogin() {
   const router = useRouter();
@@ -33,28 +36,13 @@ export function useLogin() {
       );
       router.replace("/dashboard");
     },
-    meta: {
-      normalizeError: normalizeApiError,
-    },
   });
 }
 
 export function getLoginErrorMessage(error: unknown): string {
-  return normalizeApiError(error).message;
+  return getAuthErrorMessage(error);
 }
 
-export function getLoginFieldErrors(
-  error: unknown
-): Record<string, string> {
-  const normalized = normalizeApiError(error);
-
-  return normalized.fieldErrors.reduce<Record<string, string>>(
-    (accumulator, fieldError) => {
-      if (!accumulator[fieldError.field]) {
-        accumulator[fieldError.field] = fieldError.message;
-      }
-      return accumulator;
-    },
-    {}
-  );
+export function getLoginFieldErrors(error: unknown): Record<string, string> {
+  return getAuthFieldErrors(error);
 }
