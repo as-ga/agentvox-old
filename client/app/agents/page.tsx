@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { AgentsSkeleton } from "@/features/agents/components/agents-skeleton";
 import { AgentsView } from "@/features/agents/components/agents-view";
 
 export const metadata: Metadata = {
@@ -9,5 +12,20 @@ export const metadata: Metadata = {
 };
 
 export default function AgentMonitoringPage() {
-  return <AgentsView />;
+  return (
+    <Suspense
+      fallback={
+        <DashboardLayout
+          breadcrumbs={[
+            { label: "Interview Management" },
+            { label: "Active Sessions", current: true },
+          ]}
+        >
+          <AgentsSkeleton />
+        </DashboardLayout>
+      }
+    >
+      <AgentsView />
+    </Suspense>
+  );
 }
