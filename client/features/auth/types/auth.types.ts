@@ -32,6 +32,15 @@ export interface RegisterResponse extends AuthTokens {
   user: AuthUser;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  success: boolean;
+  message: string;
+}
+
 export interface RefreshTokenRequest {
   refreshToken: string;
 }

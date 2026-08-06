@@ -2,6 +2,8 @@
 
 import { apiClient } from "@/services/api/client";
 import type {
+  ForgotPasswordRequest,
+  ForgotPasswordResponse,
   LoginRequest,
   LoginResponse,
   LogoutRequest,
@@ -30,6 +32,19 @@ export const authService = {
       acceptTerms: payload.acceptTerms,
       receiveUpdates: payload.receiveUpdates,
     });
+
+    return data;
+  },
+
+  async forgotPassword(
+    payload: ForgotPasswordRequest
+  ): Promise<ForgotPasswordResponse> {
+    const { data } = await apiClient.post<ForgotPasswordResponse>(
+      "/auth/forgot-password",
+      {
+        email: payload.email,
+      }
+    );
 
     return data;
   },
