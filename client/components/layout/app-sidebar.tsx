@@ -18,11 +18,27 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Candidates", href: "/candidates", icon: Users },
+  { label: "Candidates", href: "/candidates/dossier", icon: Users },
   { label: "Interviews", href: "/resume/upload", icon: Video },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   { label: "Settings", href: "/settings", icon: Settings },
 ] as const;
+
+function isNavItemActive(pathname: string, href: string): boolean {
+  if (pathname === href) {
+    return true;
+  }
+
+  if (href === "/candidates/dossier") {
+    return pathname.startsWith("/candidates");
+  }
+
+  if (href === "/resume/upload") {
+    return pathname.startsWith("/resume");
+  }
+
+  return pathname.startsWith(`${href}/`);
+}
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -39,10 +55,7 @@ export function AppSidebar() {
       <nav className="flex-1 space-y-1 px-3" aria-label="Main">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
-          const isActive =
-            pathname === item.href ||
-            (item.href === "/resume/upload" &&
-              pathname.startsWith("/resume"));
+          const isActive = isNavItemActive(pathname, item.href);
 
           return (
             <Link
