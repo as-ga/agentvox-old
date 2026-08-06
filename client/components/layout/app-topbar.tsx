@@ -3,9 +3,28 @@
 import { Bell, ChevronDown, Search } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
+import { useLogout } from "@/features/auth/hooks/use-logout";
+import { useAuthStore } from "@/features/auth/store/auth.store";
 
 interface AppTopbarProps {
   breadcrumbs?: ReadonlyArray<{ label: string; current?: boolean }>;
+}
+
+function getUserInitials(fullName: string | undefined): string {
+  if (!fullName) {
+    return "AJ";
+  }
+
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) {
+    return "AJ";
+  }
+
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
 }
 
 export function AppTopbar({
@@ -14,6 +33,10 @@ export function AppTopbar({
     { label: "Active Sessions", current: true },
   ],
 }: AppTopbarProps) {
+  const user = useAuthStore((state) => state.user);
+  const logoutMutation = useLogout();
+  const initials = getUserInitials(user?.fullName);
+
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 border-b border-border/70 bg-[#0b0b10]/90 px-4 backdrop-blur-xl sm:px-6">
       <nav aria-label="Breadcrumb" className="min-w-0">
@@ -59,11 +82,15 @@ export function AppTopbar({
 
         <button
           type="button"
-          className="flex items-center gap-2 rounded-full border border-border/70 bg-[#12121a] py-1 pr-2 pl-1 text-sm text-white transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          aria-label="User menu"
+          className="flex items-center gap-2 rounded-full border border-border/70 bg-[#12121a] py-1 pr-2 pl-1 text-sm text-white transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60"
+          aria-label={logoutMutation.isPending ? "Signing out" : "Sign out"}
+          disabled={logoutMutation.isPending}
+          onClick={() => {
+            void logoutMutation.mutateAsync();
+          }}
         >
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
-            AJ
+            {initials}
           </span>
           <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
         </button>
